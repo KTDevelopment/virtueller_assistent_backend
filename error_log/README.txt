@@ -1,0 +1,1 @@
+Ordner in dem alle Error_logs gespeichert werden
