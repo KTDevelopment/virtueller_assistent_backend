@@ -9,56 +9,24 @@ var exec = require('child_process').exec;
 //==================== Konstanten ================================================================================================================================================================================================================================
 
 //TABLE Names
-const TABLE_NAME_EVENT="Event";
-const TABLE_NAME_ANWESENHEIT="Anwesenheit";
-const TABLE_NAME_MITGLIED="Mitglied";
-const TABLE_NAME_REGISTER="Register";
-const TABLE_NAME_GERAET="Geraet";
+const TABLE_NAME_PROJECT="project";
+const TABLE_NAME_MILESTONE="milestone";
 
-//TABLE EVENT COLS
-const COL_NAME_EVENT_ID=TABLE_NAME_EVENT+"."+"event_id";
-const COL_NAME_EVENT_WPID=TABLE_NAME_EVENT+"."+"wpid";
-const COL_NAME_EVENT_DTSTART=TABLE_NAME_EVENT+"."+"dtstart";
-const COL_NAME_EVENT_DTEND=TABLE_NAME_EVENT+"."+"dtend";
-const COL_NAME_EVENT_SUMMARY=TABLE_NAME_EVENT+"."+"summary";
-const COL_NAME_EVENT_DESCRIPTION=TABLE_NAME_EVENT+"."+"description";
-const COL_NAME_EVENT_EVENTNAME=TABLE_NAME_EVENT+"."+"eventname";
-const COL_NAME_EVENT_LOCATION=TABLE_NAME_EVENT+"."+"location";
-const COL_NAME_EVENT_ADRESS=TABLE_NAME_EVENT+"."+"adress";
-const COL_NAME_EVENT_POSTCODE=TABLE_NAME_EVENT+"."+"postcode";
-const COL_NAME_EVENT_TOWN=TABLE_NAME_EVENT+"."+"town";
-const COL_NAME_EVENT_KLEIDUNG=TABLE_NAME_EVENT+"."+"kleidung";
-const COL_NAME_EVENT_TEILNEHMER=TABLE_NAME_EVENT+"."+"teilnehmer";
-const COL_NAME_EVENT_KATEGORIE=TABLE_NAME_EVENT+"."+"kategorie";
-const COL_NAME_EVENT_LONGITUDE=TABLE_NAME_EVENT+"."+"longitude";
-const COL_NAME_EVENT_LATITUDE=TABLE_NAME_EVENT+"."+"latitude";
-const COL_NAME_EVENT_VERSION=TABLE_NAME_EVENT+"."+"version";
+//TABLE PROJECT COLS
+const COL_NAME_PROJECT_ID=TABLE_NAME_PROJECT+"."+"project_id";
+const COL_NAME_PROJECT_NAME=TABLE_NAME_PROJECT+"."+"project_name";
+const COL_NAME_PROJECT_STARTTIME=TABLE_NAME_PROJECT+"."+"starttime";
+const COL_NAME_PROJECT_ENDTIME=TABLE_NAME_PROJECT+"."+"endtime";
+const COL_NAME_PROJECT_EDITOR_NAME=TABLE_NAME_PROJECT+"."+"editor_name";
+const COL_NAME_PROJECT_LECTURER_NAME=TABLE_NAME_PROJECT+"."+"lecturer_name";
+const COL_NAME_PROJECT_DESCRIPTION=TABLE_NAME_PROJECT+"."+"description";
 
-//TABLE MITGLIED COLS
-const COL_NAME_MITGLIED_ID=TABLE_NAME_MITGLIED+"."+"mitglied_id";
-const COL_NAME_MITGLIED_VORNAME=TABLE_NAME_MITGLIED+"."+"vorname";
-const COL_NAME_MITGLIED_NACHNAME=TABLE_NAME_MITGLIED+"."+"nachname";
-const COL_NAME_MITGLIED_ANZAHL_AUFTRITTE=TABLE_NAME_MITGLIED+"."+"anzahl_auftritte";
-const COL_NAME_MITGLIED_FK_REGISTER_ID=TABLE_NAME_MITGLIED+"."+"fk_register_id";
-const COL_NAME_MITGLIED_ROLE=TABLE_NAME_MITGLIED+"."+"role";
-const COL_NAME_MITGLIED_WEB_ROLE=TABLE_NAME_MITGLIED+"."+"web_role";
-const COL_NAME_MITGLIED_EMAIL=TABLE_NAME_MITGLIED+"."+"email";
-const COL_NAME_MITGLIED_IS_DELETED=TABLE_NAME_MITGLIED+"."+"isDeleted";
-const COL_NAME_MITGLIED_VERSION=TABLE_NAME_MITGLIED+"."+"version";
-
-//TABLE REGISTER COLS
-const COL_NAME_REGISTER_ID=TABLE_NAME_REGISTER+"."+"register_id";
-const COL_NAME_REGISTER_NAME=TABLE_NAME_REGISTER+"."+"register_name";
-
-//TABLE ANWESENHEIT COLS
-const COL_NAME_ANWESENHEIT_FK_MITGLIED_ID=TABLE_NAME_ANWESENHEIT+"."+"fk_mitglied_id";
-const COL_NAME_ANWESENHEIT_FK_EVENT_ID=TABLE_NAME_ANWESENHEIT+"."+"fk_event_id";
-const COL_NAME_ANWESENHEIT_STATUS=TABLE_NAME_ANWESENHEIT+"."+"status";
-
-//TABLE GERAETE COLS
-const COL_NAME_GERAET_ID=TABLE_NAME_GERAET+"."+"geraet_id";
-const COL_NAME_GERAET_REGISTRATION_ID=TABLE_NAME_GERAET+"."+"registration_id";
-const COL_NAME_GERAET_FK_MITGLIED_ID=TABLE_NAME_GERAET+"."+"fk_mitglied_id";
+//TABLE MILESTONE COLS
+const COL_NAME_MILESTONE_ID=TABLE_NAME_MILESTONE+"."+"milestone_id";
+const COL_NAME_MILESTONE_NAME=TABLE_NAME_MILESTONE+"."+"name";
+const COL_NAME_MILESTONE_DEADLINE=TABLE_NAME_MILESTONE+"."+"desline";
+const COL_NAME_MILESTONE_DESCRIPTION=TABLE_NAME_MILESTONE+"."+"description";
+const COL_NAME_MILESTONE_FK_PROJECT=TABLE_NAME_MILESTONE+"."+"fk_project_id";
 
 //=============== ConnectionPool und Connection-Vergabe =====================================================================================================================================================================================================================================
 
@@ -94,6 +62,107 @@ function createDatabseConnection(callback) {
 }
 
 //================ Queries und Funktionen ====================================================================================================================================================================================================================================
+
+//---------------- Funktionen für Projekte -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+
+function saveProject(project,callback){
+    var query =
+        "INSERT INTO " +
+        TABLE_NAME_PROJECT + " " +
+        "SET ?";
+    var queryParams =[project];
+    getObjectFromQuery(query,queryParams,callback);
+}
+
+function deleteProjectById(projectId, callback){
+    var query =
+        "DELETE FROM "+
+        TABLE_NAME_PROJECT+" " +
+        "WHERE " +
+        COL_NAME_PROJECT_ID+" = ?";
+    var queryParams =[projectId];
+    getObjectFromQuery(query,queryParams,callback);
+}
+
+function updateProject(project,callback){
+    var query =
+        "UPDATE "+
+        TABLE_NAME_PROJECT+" " +
+        "SET " +
+        COL_NAME_PROJECT_NAME+" = ?, " +
+        COL_NAME_PROJECT_STARTTIME+" = ?, " +
+        COL_NAME_PROJECT_ENDTIME+" = ?, " +
+        COL_NAME_PROJECT_EDITOR_NAME+" = ?, " +
+        COL_NAME_PROJECT_LECTURER_NAME+" = ?, " +
+        COL_NAME_PROJECT_DESCRIPTION+" = ? " +
+        "WHERE " +
+        COL_NAME_PROJECT_ID+" = ?";
+    var queryParams =[project.project_name, project.starttime, project.endtime, project.editor_name, project.lecturer_name, project.description, project.project_id];
+    getObjectFromQuery(query,queryParams,callback);
+}
+
+function getProjects(callback){
+    var query = "SELECT * FROM " + TABLE_NAME_PROJECT ;
+    getArrayFromQuery(query,undefined,callback)
+}
+
+function getProjectById(projectId,callback){
+    var query =
+        "SELECT * FROM " +
+        TABLE_NAME_PROJECT + " " +
+        "WHERE " +
+        COL_NAME_PROJECT_ID+" = ?" ;
+    var queryParams =[projectId];
+    getObjectFromQuery(query,queryParams,callback);
+}
+
+function addMilestone(milestone,callback){
+    var query =
+        "INSERT INTO " +
+        TABLE_NAME_MILESTONE + " " +
+        "SET ?";
+    var queryParams =[milestone];
+    getObjectFromQuery(query,queryParams,callback);
+}
+
+function deleteMilestoneById(milestoneId,callback){
+    var query =
+        "DELETE FROM "+
+        TABLE_NAME_MILESTONE+" " +
+        "WHERE " +
+        COL_NAME_MILESTONE_ID+" = ?";
+    var queryParams =[milestoneId];
+    getObjectFromQuery(query,queryParams,callback);
+}
+
+function updateMilestone(milestone,callback){
+    var query =
+        "UPDATE "+
+        TABLE_NAME_MILESTONE+" " +
+        "SET " +
+        COL_NAME_MILESTONE_NAME+" = ?, " +
+        COL_NAME_MILESTONE_DEADLINE+" = ?, " +
+        COL_NAME_MILESTONE_DESCRIPTION+" = ?, " +
+        COL_NAME_MILESTONE_FK_PROJECT+" = ?, " +
+        "WHERE " +
+        COL_NAME_MILESTONE_ID+ " = ?";
+    var queryParams =[milestone.name, milestone.deadline, milestone.description, milestone.fk_project_id, milestone.milestone_id];
+    getObjectFromQuery(query,queryParams,callback);
+}
+
+function getAllMilestonesByProjectId(projectId,callback){
+    var query =
+        "SELECT * FROM " +
+        TABLE_NAME_MILESTONE + " " +
+        "WHERE " +
+        COL_NAME_MILESTONE_FK_PROJECT+" = ?" ;
+    var queryParams =[projectId];
+    getArrayFromQuery(query,queryParams,callback);
+}
+
+
+
+
 
 //---------------- alle Funktionen zu Geräten und RegistartionIds Bestandsdaten -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 
@@ -199,16 +268,16 @@ function rollback(mitglied_id,event_id,oldStatus,callback){
 //==================================================================================== Standard Array und Object Getter ================================================================================================================================================================
 
 /**
- * gibt ein JSON-Array zurück, wenn das result der DB nicht leer ist
+ * gibt ein JSON-Array zurück
  * gibt beim Error null im JSON-Array
  * @param query SQL Query
- * @param queryparams SQL Query Parameters
+ * @param queryParams SQL Query-Parameters
  * @param callback Callback to deliver (error,JSON-Array)
  */
-function getArrayFromQuery(query,queryparams,callback){
+function getArrayFromQuery(query,queryParams,callback){
     createDatabseConnection(function (err, connection) {
         if (!err){
-            connection.query(query,queryparams,function(err, result){
+            connection.query(query,queryParams,function(err, result){
                 if (!err){
                     callback(null,result);
                 }else{
@@ -281,5 +350,14 @@ module.exports = {
     deleteRegistrationId:deleteRegistrationId,
     rollback:rollback,
     updateRegistrationId:updateRegistrationId,
-    saveRegistrationId:saveRegistrationId
+    saveRegistrationId:saveRegistrationId,
+    saveProject:saveProject,
+    deleteProjectById:deleteProjectById,
+    updateProject:updateProject,
+    getProjects:getProjects,
+    getProjectById:getProjectById,
+    addMilestone:addMilestone,
+    deleteMilestoneById:deleteMilestoneById,
+    updateMilestone:updateMilestone,
+    getAllMilestonesByProjectId:getAllMilestonesByProjectId
 };

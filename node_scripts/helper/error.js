@@ -4,8 +4,14 @@ var helper = require('./helper');
 
 //==================== Error Getter =========================================================================================================================================================================================================================================================
 
+//TODO errors anpassen, sollten status:statuscode message:errormessage haben
+
 function getBadRequestError(){
     return {"code": 400, body:{"status": "Bad Request"}};
+}
+
+function getNotFoundError(){
+    return {"code": 404, body:{"status": "Not Found"}};
 }
 
 function getPartitialOrCompleteFCMFailError(){
@@ -61,5 +67,6 @@ module.exports = {
     getFCMErrorJSON:getFCMErrorJSON,
     getServiceUnavailableError:getServiceUnavailableError,
     getPartitialOrCompleteFCMFailError:getPartitialOrCompleteFCMFailError,
-    getFCMRequestFailedError:getFCMRequestFailedError
+    getFCMRequestFailedError:getFCMRequestFailedError,
+    getNotFoundError:getNotFoundError
 };

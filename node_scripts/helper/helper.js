@@ -109,7 +109,6 @@ function getRollbackNotification(){
  * @param body
  */
 function sendResponse(response, body){
-    response.set('Access-Control-Allow-Origin', '*');
     response.status(body.code);
     response.json(body.body);
 }
