@@ -71,6 +71,59 @@ router.delete('/:project_id', function(req, res, next) {
     }
 });
 
+//Milestone
+
+router.put('/:project_id/milestones/:milestone_id', function(req, res, next) {
+    var milestoneId = req.params.milestone_id;
+    var milestone = req.body.milestone;
+    if(milestoneId == undefined || milestoneId == 0){
+        database.saveMilestone(project,function(err,result){
+            if(!err){
+                res.json(result)
+            }else{
+                helper.sendResponse(res,err)
+            }
+        })
+    }else {
+        if (!isNaN(milestoneId)) {
+            database.updateMilestone(milestone, function (err, result) {
+                if (!err) {
+                    res.json(result)
+                } else {
+                    helper.sendResponse(res, err)
+                }
+            })
+        } else {
+            helper.sendResponse(res, error.getBadRequestError())
+        }
+    }
+});
+
+router.delete('/:project_id/milestones/:milestone_id', function(req, res, next) {
+    var milestoneId = req.params.milestone_id;
+    if (!isNaN(milestoneId)) {
+        database.deleteMilestoneById(projectId, function (err, result) {
+            if (!err) {
+                res.json(result)
+            } else {
+                helper.sendResponse(res, err)
+            }
+        })
+    } else {
+        helper.sendResponse(res, error.getBadRequestError())
+    }
+});
+
+router.get('/:project_id/milestones', function(req, res, next) {
+    database.getMilestones(function(err,result){
+        if(!err){
+            res.json(result)
+        }else{
+            helper.sendResponse(res,err)
+        }
+    })
+});
+
 
 /*TODO implemet
  ein meilenstein zum projekt hinzufügen -- put -- /:project_id/milestones/:milestone_id -- 0 oder undef hinzufügen, sonst updaten, milestone im body
