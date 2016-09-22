@@ -7,6 +7,7 @@
 var app = require('../app');
 var debug = require('debug')('virtueller_assistent_backend:server');
 var http = require('http');
+var database = require('../node_scripts/database/mySQL');
 
 /**
  * Get port from environment and store in Express.
@@ -87,5 +88,14 @@ function onListening() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
-
+  var milestone ={
+    name:"test Milestone",
+    deadline: new Date().getTime()+100000,
+    description: "Test milestone description",
+    fk_project_id:44
+  };
+  database.addMilestone(milestone,function(err,result){
+    console.log(err);
+    console.log(result);
+  })
 }

@@ -15,44 +15,46 @@ router.get('/', function(req, res, next) {
     })
 });
 
+router.post('/', function(req, res, next) {
+    var project = req.body.project;
+    database.saveProject(project,function(err,result){
+        if(!err){
+            res.json(result)
+        } else {
+            helper.sendResponse(res,err)
+        }
+    })
+});
+
 router.get('/:project_id', function(req, res, next) {
-    var projectId = req.params.project_id;
-    if(!isNaN(projectId)){
-        database.getProjectById(projectId,function(err,result){
-            if(!err){
-                res.json(result)
-            }else{
-                helper.sendResponse(res,err)
-            }
-        })
-    }else{
+    try {
+        var projectId = parseInt(req.params.project_id, 10);
+    }catch (e){
         helper.sendResponse(res,error.getBadRequestError())
     }
+
+    database.getProjectById(projectId,function(err,result){
+        if(!err){
+            res.json(result)
+        }else{
+            helper.sendResponse(res,err)
+        }
+    })
 });
 
 router.put('/:project_id', function(req, res, next) {
     var projectId = req.params.project_id;
-    var project = req.body.project;
-    if(projectId == undefined || projectId == 0){
-        database.saveProject(project,function(err,result){
+    var project_values = req.body.project;
+    if (!isNaN(projectId)){
+        database.updateProject(projectId,project_values,function(err,result){
             if(!err){
                 res.json(result)
-            }else{
+            } else {
                 helper.sendResponse(res,err)
             }
         })
-    }else {
-        if (!isNaN(projectId)) {
-            database.updateProject(project, function (err, result) {
-                if (!err) {
-                    res.json(result)
-                } else {
-                    helper.sendResponse(res, err)
-                }
-            })
-        } else {
-            helper.sendResponse(res, error.getBadRequestError())
-        }
+    } else {
+        helper.sendResponse(res,error.getBadRequestError())
     }
 });
 
@@ -73,11 +75,13 @@ router.delete('/:project_id', function(req, res, next) {
 
 //Milestone
 
-router.put('/:project_id/milestones/:milestone_id', function(req, res, next) {
-    var milestoneId = req.params.milestone_id;
+router.post('/:project_id/milestones',function(req,res,next){
+    var projectId = parseInt(req.params.project_id, 10);
     var milestone = req.body.milestone;
-    if(milestoneId == undefined || milestoneId == 0){
-        database.saveMilestone(project,function(err,result){
+    if (!isNaN(projectId)){
+        var newMilestone = milestone;
+        newMilestone.fk_project_id = projectId;
+        database.addMilestone(newMilestone,function(err,result){
             if(!err){
                 res.json(result)
             }else{
@@ -85,24 +89,32 @@ router.put('/:project_id/milestones/:milestone_id', function(req, res, next) {
             }
         })
     }else {
-        if (!isNaN(milestoneId)) {
-            database.updateMilestone(milestone, function (err, result) {
-                if (!err) {
-                    res.json(result)
-                } else {
-                    helper.sendResponse(res, err)
-                }
-            })
-        } else {
-            helper.sendResponse(res, error.getBadRequestError())
-        }
+        helper.sendResponse(res, error.getBadRequestError())
+    }
+});
+
+router.put('/:project_id/milestones/:milestone_id', function(req, res, next) {
+    var projectId = parseInt(req.params.project_id, 10);
+    var milestoneId = parseInt(req.params.milestone_id, 10);
+    var milestoneValues = req.body.milestone;
+    if (!isNaN(milestoneId) && !isNaN(projectId)) {
+        database.updateMilestone(projectId,milestoneId,milestoneValues, function (err, result) {
+            if (!err) {
+                res.json(result)
+            } else {
+                helper.sendResponse(res, err)
+            }
+        })
+    } else {
+        helper.sendResponse(res, error.getBadRequestError())
     }
 });
 
 router.delete('/:project_id/milestones/:milestone_id', function(req, res, next) {
+    var projectId = req.params.project_id;
     var milestoneId = req.params.milestone_id;
     if (!isNaN(milestoneId)) {
-        database.deleteMilestoneById(projectId, function (err, result) {
+        database.deleteMilestoneById(projectId,milestoneId, function (err, result) {
             if (!err) {
                 res.json(result)
             } else {
@@ -115,7 +127,8 @@ router.delete('/:project_id/milestones/:milestone_id', function(req, res, next) 
 });
 
 router.get('/:project_id/milestones', function(req, res, next) {
-    database.getMilestones(function(err,result){
+    var projectId = req.params.project_id;
+    database.getMilestones(projectId,function(err,result){
         if(!err){
             res.json(result)
         }else{
@@ -124,14 +137,16 @@ router.get('/:project_id/milestones', function(req, res, next) {
     })
 });
 
-
-/*TODO implemet
- ein meilenstein zum projekt hinzufügen -- put -- /:project_id/milestones/:milestone_id -- 0 oder undef hinzufügen, sonst updaten, milestone im body
- ein meilenstein vom projekt löschen -- delete -- /:project_id/milestones/:milestone_id
- ein meilenstein vom projekt aktualisieren -- siehe hinzufügen
- alle meilensteine eines projektes ausgeben -- get -- /:project_id/milestones
-
- */
-
+router.get('/:project_id/milestones/:milestone_id', function(req, res, next) {
+    var projectId = req.params.project_id;
+    var milestoneId = req.params.milestone_id;
+    database.getMilestoneById(projectId,milestoneId,function(err,result){
+        if(!err){
+            res.json(result)
+        }else{
+            helper.sendResponse(res,err)
+        }
+    })
+});
 
 module.exports = router;

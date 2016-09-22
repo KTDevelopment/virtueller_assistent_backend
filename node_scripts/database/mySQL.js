@@ -24,7 +24,7 @@ const COL_NAME_PROJECT_DESCRIPTION=TABLE_NAME_PROJECT+"."+"description";
 //TABLE MILESTONE COLS
 const COL_NAME_MILESTONE_ID=TABLE_NAME_MILESTONE+"."+"milestone_id";
 const COL_NAME_MILESTONE_NAME=TABLE_NAME_MILESTONE+"."+"name";
-const COL_NAME_MILESTONE_DEADLINE=TABLE_NAME_MILESTONE+"."+"desline";
+const COL_NAME_MILESTONE_DEADLINE=TABLE_NAME_MILESTONE+"."+"deadline";
 const COL_NAME_MILESTONE_DESCRIPTION=TABLE_NAME_MILESTONE+"."+"description";
 const COL_NAME_MILESTONE_FK_PROJECT=TABLE_NAME_MILESTONE+"."+"fk_project_id";
 
@@ -69,9 +69,17 @@ function saveProject(project,callback){
     var query =
         "INSERT INTO " +
         TABLE_NAME_PROJECT + " " +
-        "SET ?";
-    var queryParams =[project];
-    getObjectFromQuery(query,queryParams,callback);
+        "SET ? ";
+    var queryParams =[project,project];
+    executeQuery(query,queryParams,function(err, result){
+        if(!err){
+            var createdProject = project;
+            createdProject.project_id = result.insertId;
+            callback(null,createdProject);
+        }else{
+            callback(err,null);
+        }
+    });
 }
 
 function deleteProjectById(projectId, callback){
@@ -81,10 +89,10 @@ function deleteProjectById(projectId, callback){
         "WHERE " +
         COL_NAME_PROJECT_ID+" = ?";
     var queryParams =[projectId];
-    getObjectFromQuery(query,queryParams,callback);
+    executeQuery(query,queryParams,callback);
 }
 
-function updateProject(project,callback){
+function updateProject(projectId,projectValues,callback){
     var query =
         "UPDATE "+
         TABLE_NAME_PROJECT+" " +
@@ -97,13 +105,21 @@ function updateProject(project,callback){
         COL_NAME_PROJECT_DESCRIPTION+" = ? " +
         "WHERE " +
         COL_NAME_PROJECT_ID+" = ?";
-    var queryParams =[project.project_name, project.starttime, project.endtime, project.editor_name, project.lecturer_name, project.description, project.project_id];
-    getObjectFromQuery(query,queryParams,callback);
+    var queryParams =[projectValues.project_name, projectValues.starttime, projectValues.endtime, projectValues.editor_name, projectValues.lecturer_name, projectValues.description, projectId];
+    executeQuery(query,queryParams,function(err, result){
+        if (!err){
+            var updatedProject = projectValues;
+            updatedProject.project_id = projectId;
+            callback(null, updatedProject)
+        }else{
+            callback(err,null)
+        }
+    });
 }
 
 function getProjects(callback){
     var query = "SELECT * FROM " + TABLE_NAME_PROJECT ;
-    getArrayFromQuery(query,undefined,callback)
+    executeQuery(query,undefined,callback)
 }
 
 function getProjectById(projectId,callback){
@@ -113,54 +129,104 @@ function getProjectById(projectId,callback){
         "WHERE " +
         COL_NAME_PROJECT_ID+" = ?" ;
     var queryParams =[projectId];
-    getObjectFromQuery(query,queryParams,callback);
+    executeQuery(query,queryParams,function(err, result){
+        if(!err){
+            callback(null,result[0])
+        }else{
+            callback(err,null);
+        }
+    });
 }
 
 function addMilestone(milestone,callback){
+    if(milestone.achieved){
+        delete milestone.achieved;
+    }
     var query =
         "INSERT INTO " +
         TABLE_NAME_MILESTONE + " " +
         "SET ?";
     var queryParams =[milestone];
-    getObjectFromQuery(query,queryParams,callback);
+    executeQuery(query,queryParams,function(err, result){
+        if(!err){
+            var createdMilestone = milestone;
+            createdMilestone.milestone_id = result.insertId;
+            createdMilestone.achieved = 0;
+            callback(null,createdMilestone);
+        }else{
+            callback(err,null);
+        }
+    });
 }
 
-function deleteMilestoneById(milestoneId,callback){
+function deleteMilestoneById(projectId, milestoneId,callback){
     var query =
         "DELETE FROM "+
         TABLE_NAME_MILESTONE+" " +
         "WHERE " +
-        COL_NAME_MILESTONE_ID+" = ?";
-    var queryParams =[milestoneId];
-    getObjectFromQuery(query,queryParams,callback);
+        COL_NAME_MILESTONE_ID+" = ? AND " +
+        COL_NAME_MILESTONE_FK_PROJECT+" = ?";
+    var queryParams =[milestoneId,projectId];
+    executeQuery(query,queryParams,callback);
 }
 
-function updateMilestone(milestone,callback){
+function updateMilestone(projectId, milestoneId, milestoneValues,callback){
     var query =
         "UPDATE "+
         TABLE_NAME_MILESTONE+" " +
         "SET " +
         COL_NAME_MILESTONE_NAME+" = ?, " +
         COL_NAME_MILESTONE_DEADLINE+" = ?, " +
-        COL_NAME_MILESTONE_DESCRIPTION+" = ?, " +
-        COL_NAME_MILESTONE_FK_PROJECT+" = ?, " +
+        COL_NAME_MILESTONE_DESCRIPTION+" = ? " +
         "WHERE " +
-        COL_NAME_MILESTONE_ID+ " = ?";
-    var queryParams =[milestone.name, milestone.deadline, milestone.description, milestone.fk_project_id, milestone.milestone_id];
-    getObjectFromQuery(query,queryParams,callback);
+        COL_NAME_MILESTONE_ID+ " = ? AND " +
+        COL_NAME_MILESTONE_FK_PROJECT+" = ? ";
+    var queryParams =[milestoneValues.name, milestoneValues.deadline, milestoneValues.description, milestoneId, projectId];
+    executeQuery(query,queryParams,function(err, result){
+        if (!err){
+            var updatedMilestone = milestoneValues;
+            updatedMilestone.fk_project_id = projectId;
+            updatedMilestone.milestone_id = milestoneId;
+            callback(null, updatedMilestone)
+        }else{
+            callback(err,null)
+        }
+    });
 }
 
-function getAllMilestonesByProjectId(projectId,callback){
+function getMilestones(projectId, callback){
     var query =
         "SELECT * FROM " +
         TABLE_NAME_MILESTONE + " " +
         "WHERE " +
         COL_NAME_MILESTONE_FK_PROJECT+" = ?" ;
     var queryParams =[projectId];
-    getArrayFromQuery(query,queryParams,callback);
+    executeQuery(query,queryParams,function(err, result){
+        if(!err){
+            callback(null,result)
+        }else{
+            callback(err,null);
+        }
+    });
 }
 
-
+function getMilestoneById(projectId, milestoneId, callback){
+    var query =
+        "SELECT * FROM " +
+        TABLE_NAME_MILESTONE + " " +
+        "WHERE " +
+        COL_NAME_MILESTONE_FK_PROJECT+" = ? " +
+        "AND " +
+        COL_NAME_MILESTONE_ID+" = ?" ;
+    var queryParams =[projectId,milestoneId];
+    executeQuery(query,queryParams,function(err, result){
+        if(!err){
+            callback(null,result[0])
+        }else{
+            callback(err,null);
+        }
+    });
+}
 
 
 
@@ -180,7 +246,7 @@ function getRegistrationIdsByMitgliedId(mitgliedId, callback){
         "WHERE " +
         COL_NAME_GERAET_FK_MITGLIED_ID+"=? ";
     var queryParams = [mitgliedId];
-    getArrayFromQuery(query,queryParams,callback);
+    executeQuery(query,queryParams,callback);
 }
 
 /**
@@ -196,7 +262,7 @@ function saveRegistrationId(newRegistrationId,memberId,callback){
         COL_NAME_GERAET_FK_MITGLIED_ID+") " +
         "VALUES(?,?)";
     var queryparams=[newRegistrationId,memberId];
-    getObjectFromQuery(query,queryparams,callback)
+    executeObjectQuery(query,queryparams,callback)
 }
 
 /**
@@ -222,7 +288,7 @@ function deleteRegistrationId(registrationId, callback){
         "WHERE " +
         COL_NAME_GERAET_REGISTRATION_ID+"=?";
     var queryparams=[registrationId];
-    getObjectFromQuery(query,queryparams,callback)
+    executeObjectQuery(query,queryparams,callback)
 }
 
 /**
@@ -241,7 +307,7 @@ function updateRegistrationId(oldRegistrationId, newRegistrationId, mitglied_id,
         COL_NAME_GERAET_REGISTRATION_ID+"=? AND "+
         COL_NAME_GERAET_FK_MITGLIED_ID+"=?";
     var queryparams=[newRegistrationId,oldRegistrationId,mitglied_id];
-    getObjectFromQuery(query,queryparams,callback)
+    executeObjectQuery(query,queryparams,callback)
 }
 
 //---------------- Rollback -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -262,79 +328,40 @@ function rollback(mitglied_id,event_id,oldStatus,callback){
         COL_NAME_ANWESENHEIT_FK_MITGLIED_ID+"=? AND " +
         COL_NAME_ANWESENHEIT_FK_EVENT_ID+"=?";
     var queryparams=[oldStatus,mitglied_id,event_id];
-    getObjectFromQuery(query,queryparams,callback)
+    executeObjectQuery(query,queryparams,callback)
 }
 
 //==================================================================================== Standard Array und Object Getter ================================================================================================================================================================
 
 /**
- * gibt ein JSON-Array zurück
- * gibt beim Error null im JSON-Array
+ * Führt die Query aus und gibt das ergebnis zurück, entweder ein Object oder ein Array, abhängig von der Query
+ * gibt beim Error null als result
  * @param query SQL Query
  * @param queryParams SQL Query-Parameters
- * @param callback Callback to deliver (error,JSON-Array)
+ * @param callback Callback to deliver (error,result)
  */
-function getArrayFromQuery(query,queryParams,callback){
+function executeQuery(query, queryParams, callback){
     createDatabseConnection(function (err, connection) {
         if (!err){
             connection.query(query,queryParams,function(err, result){
                 if (!err){
                     callback(null,result);
                 }else{
-                    error.writeErrorLog("getArrayFromQuery",{error:err, query:query, queryparams:queryparams});
-                    callback(error.getInternalServerError(),null);
-                }
-            });
-            connection.release();
-        }else{
-            callback(err,null);
-        }
-    })
-}
-
-/**
- * gibt ein JSON-Object zurück, sollte nur aufgerufen werdenm wenn auch ein Object gewünscht ist, da nur das erste Object des Result-Array zurückgegeben wird
- * @param query auszuführenden Query
- * @param queryparams Parameter falls '?' vergeben wurden
- * @param callback liefert err und result
- */
-function getObjectFromQueryThatsReturnsArray(query, queryparams, callback){
-    createDatabseConnection(function (err, connection) {
-        if (!err){
-            connection.query(query,queryparams,function(err, result){
-                if (!err){
-                    if (!helper.isEmptyObject(result)){
-                        callback(null,result[0]);
-                    }else{
-                        callback(null,{});
+                    switch (err.errno){
+                        case 1062: // duplicate entry of unique key
+                            callback(error.getBadRequestError(),null);
+                            break;
+                        case 1452: // now referenced row for FK
+                            callback(error.getBadRequestError(),null);
+                            break;
+                        case 1054: // unknown column
+                            callback(error.getBadRequestError(),null);
+                            break;
+                        default:
+                            error.writeErrorLog("executeObjectQuery",{error:err, query:query, queryParams:queryParams});
+                            callback(error.getInternalServerError(),null);
+                            break;
                     }
-                }else{
-                    error.writeErrorLog("getObjectFromQueryThatsReturnsArray",{error:err, query:query, queryparams:queryparams});
-                    callback(error.getInternalServerError(),null);
-                }
-            });
-            connection.release();
-        }else{
-            callback(err,null);
-        }
-    })
-}
-
-/**
- * gibt jede positive antwort von mysql im JSON-Object weiter
- * @param query
- * @param queryparams
- * @param callback
- */
-function getObjectFromQuery(query, queryparams, callback){
-    createDatabseConnection(function (err, connection) {
-        if (!err){
-            connection.query(query,queryparams,function(err, result){
-                if (!err){
-                    callback(null,result);
-                }else{
-                    error.writeErrorLog("getObjectFromQuery",{error:err, query:query, queryparams:queryparams});
-                    callback(error.getInternalServerError(),null);
                 }
             });
             connection.release();
@@ -359,5 +386,6 @@ module.exports = {
     addMilestone:addMilestone,
     deleteMilestoneById:deleteMilestoneById,
     updateMilestone:updateMilestone,
-    getAllMilestonesByProjectId:getAllMilestonesByProjectId
+    getMilestones:getMilestones,
+    getMilestoneById:getMilestoneById
 };

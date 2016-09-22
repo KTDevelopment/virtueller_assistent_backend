@@ -7,10 +7,10 @@
 var mysql = {
     connectionLimit: 100,
     host: 'localhost',
-    user: '',
-    password: '',
-    database: '',
-    port: '',
+    user: 'root',
+    password: 'root',
+    database: 'virtueller_assistent',
+    port: '8889',
     debug: false
 };
 
