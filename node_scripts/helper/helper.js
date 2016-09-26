@@ -103,6 +103,15 @@ function getRollbackNotification(){
     }
 }
 
+function getNoContentResponse(){
+    return {
+        "code": 200,
+        body:{
+            "status": "No Content"
+        }
+    };
+}
+
 /**
  * senden den übergebenen body, an die übergebene Response
  * @param response
@@ -157,5 +166,6 @@ module.exports = {
     getRestSuccessResponse:getRestSuccessResponse,
     mergeProperties:mergeProperties,
     writeLog:writeLog,
-    getRollbackNotification:getRollbackNotification
+    getRollbackNotification:getRollbackNotification,
+    getNoContentResponse:getNoContentResponse
 };

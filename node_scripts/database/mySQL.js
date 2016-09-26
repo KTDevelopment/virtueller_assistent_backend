@@ -9,15 +9,18 @@ var exec = require('child_process').exec;
 //==================== Konstanten ================================================================================================================================================================================================================================
 
 //TABLE Names
-const TABLE_NAME_PROJECT="project";
-const TABLE_NAME_MILESTONE="milestone";
+const TABLE_NAME_PROJECT= "project";
+const TABLE_NAME_MILESTONE= "milestone";
+const TABLE_NAME_DEVICE= "device";
+const TABLE_NAME_USER = "user";
+const TABLE_NAME_SHARED = "shared";
 
 //TABLE PROJECT COLS
 const COL_NAME_PROJECT_ID=TABLE_NAME_PROJECT+"."+"project_id";
 const COL_NAME_PROJECT_NAME=TABLE_NAME_PROJECT+"."+"project_name";
 const COL_NAME_PROJECT_STARTTIME=TABLE_NAME_PROJECT+"."+"starttime";
 const COL_NAME_PROJECT_ENDTIME=TABLE_NAME_PROJECT+"."+"endtime";
-const COL_NAME_PROJECT_EDITOR_NAME=TABLE_NAME_PROJECT+"."+"editor_name";
+const COL_NAME_PROJECT_FK_USER_ID=TABLE_NAME_PROJECT+"."+"fk_user_id";
 const COL_NAME_PROJECT_LECTURER_NAME=TABLE_NAME_PROJECT+"."+"lecturer_name";
 const COL_NAME_PROJECT_DESCRIPTION=TABLE_NAME_PROJECT+"."+"description";
 
@@ -27,6 +30,20 @@ const COL_NAME_MILESTONE_NAME=TABLE_NAME_MILESTONE+"."+"name";
 const COL_NAME_MILESTONE_DEADLINE=TABLE_NAME_MILESTONE+"."+"deadline";
 const COL_NAME_MILESTONE_DESCRIPTION=TABLE_NAME_MILESTONE+"."+"description";
 const COL_NAME_MILESTONE_FK_PROJECT=TABLE_NAME_MILESTONE+"."+"fk_project_id";
+
+//TABLE DEVICE COLS
+const COL_NAME_DEVICE_ID=TABLE_NAME_DEVICE+"."+"device_id";
+const COL_NAME_DEVICE_REGISTRATION_ID=TABLE_NAME_DEVICE+"."+"registration_id";
+const COL_NAME_DEVICE_FK_USER_ID=TABLE_NAME_DEVICE+"."+"fk_user_id";
+
+//TABLE USER COLS
+const COL_NAME_USER_ID = TABLE_NAME_USER+"."+"user_id";
+const COL_NAME_USERNAME = TABLE_NAME_USER+"."+"user_name";
+
+//TABLE SHARED COLS
+const COL_NAME_SHARED_FK_USER_ID = TABLE_NAME_SHARED+"."+"fk_user_id";
+const COL_NAME_SHARED_FK_PROJECT_ID = TABLE_NAME_SHARED+"."+"fk_project_id";
+
 
 //=============== ConnectionPool und Connection-Vergabe =====================================================================================================================================================================================================================================
 
@@ -70,7 +87,7 @@ function saveProject(project,callback){
         "INSERT INTO " +
         TABLE_NAME_PROJECT + " " +
         "SET ? ";
-    var queryParams =[project,project];
+    var queryParams =[project];
     executeQuery(query,queryParams,function(err, result){
         if(!err){
             var createdProject = project;
@@ -100,7 +117,7 @@ function updateProject(projectId,projectValues,callback){
         COL_NAME_PROJECT_NAME+" = ?, " +
         COL_NAME_PROJECT_STARTTIME+" = ?, " +
         COL_NAME_PROJECT_ENDTIME+" = ?, " +
-        COL_NAME_PROJECT_EDITOR_NAME+" = ?, " +
+        COL_NAME_PROJECT_FK_USER_ID+" = ?, " +
         COL_NAME_PROJECT_LECTURER_NAME+" = ?, " +
         COL_NAME_PROJECT_DESCRIPTION+" = ? " +
         "WHERE " +
@@ -137,6 +154,8 @@ function getProjectById(projectId,callback){
         }
     });
 }
+
+//---------------- Funktionen für Milestones -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 
 function addMilestone(milestone,callback){
     if(milestone.achieved){
@@ -228,41 +247,127 @@ function getMilestoneById(projectId, milestoneId, callback){
     });
 }
 
+//---------------- Funktionen für user -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 
+function saveUser(user,callback){
+    var query =
+        "INSERT INTO " +
+        TABLE_NAME_USER + " " +
+        "SET ? ";
+    var queryParams =[user];
+    executeQuery(query,queryParams,function(err, result){
+        if(!err){
+            var createdUser = user;
+            createdUser.user_id = result.insertId;
+            callback(null,createdUser);
+        }else{
+            callback(err,null);
+        }
+    });
+}
+
+function deleteUserById(userId, callback){
+    var query =
+        "DELETE FROM "+
+        TABLE_NAME_USER+" " +
+        "WHERE " +
+        COL_NAME_USER_ID+" = ?";
+    var queryParams =[userId];
+    executeQuery(query,queryParams,callback);
+}
+
+function updateUser(userId,userName,callback){
+    var query =
+        "UPDATE "+
+        TABLE_NAME_USER+" " +
+        "SET " +
+        COL_NAME_USERNAME+" = ? " +
+        "WHERE " +
+        COL_NAME_USER_ID+" = ?";
+    var queryParams =[userName, userId];
+    executeQuery(query,queryParams,function(err, result){
+        if (!err){
+            var updatedUser={};
+            updatedUser.user_name = userName;
+            updatedUser.user_id = userId;
+            callback(null, updatedUser)
+        }else{
+            callback(err,null)
+        }
+    });
+}
+
+function getUsers(callback){
+    var query = "SELECT * FROM " + TABLE_NAME_USER ;
+    executeQuery(query,undefined,callback)
+}
+
+function getUserById(userId,callback){
+    var query =
+        "SELECT * FROM " +
+        TABLE_NAME_USER + " " +
+        "WHERE " +
+        COL_NAME_USER_ID+" = ?" ;
+    var queryParams =[userId];
+    executeQuery(query,queryParams,function(err, result){
+        if(!err){
+            callback(null,result[0])
+        }else{
+            callback(err,null);
+        }
+    });
+}
 
 //---------------- alle Funktionen zu Geräten und RegistartionIds Bestandsdaten -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 
 /**
  * liefert mitglieder_ids mit zugehöriger registration_id
- * @param mitgliedId
+ * @param userId
  * @param callback
  */
-function getRegistrationIdsByMitgliedId(mitgliedId, callback){
+function getRegistrationIdsByUserId(userId, callback){
     var query ="SELECT " +
-        COL_NAME_GERAET_FK_MITGLIED_ID+", "+
-        COL_NAME_GERAET_REGISTRATION_ID+" " +
+        COL_NAME_DEVICE_FK_USER_ID+", "+
+        COL_NAME_DEVICE_REGISTRATION_ID+" " +
         "FROM " +
-        TABLE_NAME_GERAET+" " +
+        TABLE_NAME_DEVICE+" " +
         "WHERE " +
-        COL_NAME_GERAET_FK_MITGLIED_ID+"=? ";
-    var queryParams = [mitgliedId];
+        COL_NAME_DEVICE_FK_USER_ID+"=? ";
+    var queryParams = [userId];
+    executeQuery(query,queryParams,callback);
+}
+
+function getRegistrationIdsByProjectId(projectId, callback){
+    var query = "SELECT " +
+        COL_NAME_DEVICE_REGISTRATION_ID+" " +
+        "FROM " +
+        TABLE_NAME_DEVICE+" " +
+        "LEFT JOIN " +
+        TABLE_NAME_SHARED+" ON " +
+        COL_NAME_DEVICE_FK_USER_ID+"="+COL_NAME_SHARED_FK_USER_ID+" " +
+        "LEFT JOIN " +
+        TABLE_NAME_PROJECT+" ON " +
+        COL_NAME_DEVICE_FK_USER_ID+"="+COL_NAME_PROJECT_FK_USER_ID+" " +
+        "Where " +
+        COL_NAME_SHARED_FK_PROJECT_ID+"=? OR "+COL_NAME_PROJECT_ID+"=?";
+    var queryParams = [projectId,projectId];
     executeQuery(query,queryParams,callback);
 }
 
 /**
  * speichert eine registartion_id zu einem Mitglied ab
  * @param newRegistrationId
- * @param memberId
+ * @param userId
  * @param callback
  */
-function saveRegistrationId(newRegistrationId,memberId,callback){
+function saveRegistrationId(newRegistrationId,userId,callback){
     var query = "INSERT INTO " +
-        TABLE_NAME_GERAET+" (" +
-        COL_NAME_GERAET_REGISTRATION_ID+"," +
-        COL_NAME_GERAET_FK_MITGLIED_ID+") " +
+        TABLE_NAME_DEVICE+" (" +
+        COL_NAME_DEVICE_REGISTRATION_ID+"," +
+        COL_NAME_DEVICE_FK_USER_ID+") " +
         "VALUES(?,?)";
-    var queryparams=[newRegistrationId,memberId];
-    executeObjectQuery(query,queryparams,callback)
+    var queryParams=[newRegistrationId,userId];
+    executeQuery(query,queryParams,callback)
 }
 
 /**
@@ -271,10 +376,10 @@ function saveRegistrationId(newRegistrationId,memberId,callback){
  */
 function getRegistrationIds(callback){
     var query="SELECT " +
-        COL_NAME_GERAET_REGISTRATION_ID+" " +
+        COL_NAME_DEVICE_REGISTRATION_ID+" " +
         "FROM "+
-        TABLE_NAME_GERAET;
-    getAnyArrayFromQuery(query,undefined,callback)
+        TABLE_NAME_DEVICE;
+    executeQuery(query,undefined,callback)
 }
 
 /**
@@ -284,11 +389,11 @@ function getRegistrationIds(callback){
  */
 function deleteRegistrationId(registrationId, callback){
     var query="DELETE FROM " +
-        TABLE_NAME_GERAET+" " +
+        TABLE_NAME_DEVICE+" " +
         "WHERE " +
-        COL_NAME_GERAET_REGISTRATION_ID+"=?";
+        COL_NAME_DEVICE_REGISTRATION_ID+"=?";
     var queryparams=[registrationId];
-    executeObjectQuery(query,queryparams,callback)
+    executeQuery(query,queryparams,callback)
 }
 
 /**
@@ -300,14 +405,14 @@ function deleteRegistrationId(registrationId, callback){
  */
 function updateRegistrationId(oldRegistrationId, newRegistrationId, mitglied_id, callback){
     var query="UPDATE " +
-        TABLE_NAME_GERAET+" " +
+        TABLE_NAME_DEVICE+" " +
         "SET "+
-        COL_NAME_GERAET_REGISTRATION_ID+"=?"+
+        COL_NAME_DEVICE_REGISTRATION_ID+"=?"+
         "WHERE " +
-        COL_NAME_GERAET_REGISTRATION_ID+"=? AND "+
-        COL_NAME_GERAET_FK_MITGLIED_ID+"=?";
+        COL_NAME_DEVICE_REGISTRATION_ID+"=? AND "+
+        COL_NAME_DEVICE_FK_USER_ID+"=?";
     var queryparams=[newRegistrationId,oldRegistrationId,mitglied_id];
-    executeObjectQuery(query,queryparams,callback)
+    executeQuery(query,queryparams,callback)
 }
 
 //---------------- Rollback -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -320,15 +425,7 @@ function updateRegistrationId(oldRegistrationId, newRegistrationId, mitglied_id,
  * @param callback
  */
 function rollback(mitglied_id,event_id,oldStatus,callback){
-    var query= "UPDATE " +
-        TABLE_NAME_ANWESENHEIT+" " +
-        "SET " +
-        COL_NAME_ANWESENHEIT_STATUS+"=? " +
-        "WHERE " +
-        COL_NAME_ANWESENHEIT_FK_MITGLIED_ID+"=? AND " +
-        COL_NAME_ANWESENHEIT_FK_EVENT_ID+"=?";
-    var queryparams=[oldStatus,mitglied_id,event_id];
-    executeObjectQuery(query,queryparams,callback)
+    //TODO Implement if needed
 }
 
 //==================================================================================== Standard Array und Object Getter ================================================================================================================================================================
@@ -375,6 +472,9 @@ function executeQuery(query, queryParams, callback){
 
 module.exports = {
     deleteRegistrationId:deleteRegistrationId,
+    getRegistrationIds:getRegistrationIds,
+    getRegistrationIdsByUserId:getRegistrationIdsByUserId,
+    getRegistrationIdsByProjectId:getRegistrationIdsByProjectId,
     rollback:rollback,
     updateRegistrationId:updateRegistrationId,
     saveRegistrationId:saveRegistrationId,
@@ -387,5 +487,10 @@ module.exports = {
     deleteMilestoneById:deleteMilestoneById,
     updateMilestone:updateMilestone,
     getMilestones:getMilestones,
-    getMilestoneById:getMilestoneById
+    getMilestoneById:getMilestoneById,
+    saveUser:saveUser,
+    deleteUserById:deleteUserById,
+    updateUser:updateUser,
+    getUsers:getUsers,
+    getUserById:getUserById
 };

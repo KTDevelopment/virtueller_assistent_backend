@@ -6,47 +6,58 @@ var error = require('./../helper/error');
 var helper = require('./../helper/helper');
 var config = require('./../config');
 
-var fcm = require('node-gcm');
+var fcmService = require('node-gcm');
 var backoff = require('./backoff.js');
 
-var forExport = {};
+var fcm = {};
 
 //==================== Einstiegsfunktionen für FCM =========================================================================================================================================================================================================================================================
 
 /**
- * einstieg in fcm cycle, für erste funktion (muss noch festgelegt werden
- * @param registerId - optional
- * @param memberId
+ * einstieg in fcmService cycle, für erste funktion (muss noch festgelegt werden
+ * @param projectId
  * @param callback
  */
 
-forExport.memberActualized = function(registerId,memberId,callback){
+fcm.projectActualized = function(projectId, callback){
     //datenbpaket beschreiben
     var data = {
         'type': '0'
     };
 
-
-    //DO some fancy stuff to get what you need
-
-    //wenn alles klappt weiter
-
-    var mitgliedArray = [];
-    var messageData=getMessageData(data,mitgliedArray);
-    sendMessageToFCM(messageData,function(err,result){
-        if(!err){
-            callback(null,result);
-        }else{
-            if(err.code==error.getServiceUnavailableError().code){
-                callback(err,null);
-                var retryAfter = 1000;
-                exponentialBackoff(retryAfter,messageData,undefined,undefined,undefined);
+    function getUserIds(projectId,callback){
+        database.getRegistrationIdsByProjectId(projectId,function(err,result){
+            if(!err){
+                callback(null,result)
             }else{
-                callback(err,null);
+                callback(err,result)
             }
+        })
+    }
+
+    async.waterfall([getUserIds], function (err, regIdArray) {
+        if(!err){
+            var messageData = getMessageData(data,regIdArray);
+            sendMessageToFCM(messageData,function(err,result){
+                if(!err){
+                    callback(null,result);
+                }else{
+                    if(err.code==error.getServiceUnavailableError().code){
+                        callback(err,null);
+                        var retryAfter = 1000;
+                        exponentialBackoff(retryAfter,messageData,undefined,undefined,undefined);
+                    }else{
+                        callback(err,null);
+                    }
+                }
+            });
+        }else{
+            callback(err,null);
         }
+
     });
 };
+
 
 //==================== Funktionen für FCM =========================================================================================================================================================================================================================================================
 /**
@@ -57,16 +68,16 @@ forExport.memberActualized = function(registerId,memberId,callback){
 function sendMessageToFCM(messageData, callback){
 
     var message = messageData['message'];
-    var mitgliedArray = messageData['mitgliedArray'];
-    var adressArray = helper.formateRegistrationIdArray(mitgliedArray);
+    var regIdArray = messageData['regIdArray'];
+    var adressArray = helper.formateRegistrationIdArray(regIdArray);
 
     // Set up the sender with you API key.
-    var sender = new fcm.Sender(config.fcm.api_key);
+    var sender = new fcmService.Sender(config.fcm.api_key);
     sender.send(message, { registrationTokens: adressArray }, function (err, response) {
         if(!err) {
             if(response.failure > 0){
                 // evaluate Partitial error
-                evaluatePartitialOrCompleteError(response,mitgliedArray,function(allFailed){
+                evaluatePartitialOrCompleteError(response,regIdArray,function(allFailed){
                     if(allFailed){
                         callback(error.getFCMRequestFailedError(),null);
                     }else{
@@ -95,28 +106,28 @@ function sendMessageToFCM(messageData, callback){
 /**
  * gibt eine Daten für eine FCM Message in einem JSON-Object zurück
  * @param data
- * @param mitgliedArray
- * @returns {{message: *, mitgliedArray: *}}
+ * @param regIdArray
+ * @returns {{message: *, regIdArray: *}}
  */
-function getMessageData(data,mitgliedArray) {
-    var message = new fcm.Message({
+function getMessageData(data,regIdArray) {
+    var message = new fcmService.Message({
         data: data
     });
     return {
         message: message,
-        mitgliedArray: mitgliedArray
+        regIdArray: regIdArray
     };
 }
 
 /**
- * liefert im callback zurück ob die ANchricht an alle registration_ids fehlgeschlagen ist oder nicht
+ * liefert im callback zurück ob die Nachricht an alle registration_ids fehlgeschlagen ist oder nicht
  * Löscht alle registration_ids, welche von FCM als "NotRegistrated" oder "InvalidRegistration" eingestuft werden
  * erstzt alle registration_ids, für die von FCM eine canonical ID zurück gegeben wird.
  * @param result
- * @param mitgliedArray
+ * @param regIdArray
  * @param callback
  */
-function evaluatePartitialOrCompleteError(result, mitgliedArray, callback) {
+function evaluatePartitialOrCompleteError(result, regIdArray, callback) {
 
     var removableIds=[];
     var retryIds=[];
@@ -124,7 +135,7 @@ function evaluatePartitialOrCompleteError(result, mitgliedArray, callback) {
     var fcmShallGoToPlaner=false;
     var allFailedIds=[];
 
-    evaluateResultForPartitialOrCompleteError(result,mitgliedArray,function(removeableRegistrationIds, retryRegistrationIds, replaceableRegistrationIds, failedRegistrationIds, shallGoToPlaner){
+    evaluateResultForPartitialOrCompleteError(result,regIdArray,function(removeableRegistrationIds, retryRegistrationIds, replaceableRegistrationIds, failedRegistrationIds, shallGoToPlaner){
         removableIds = removeableRegistrationIds;
         retryIds = retryRegistrationIds;
         replaceableIds = replaceableRegistrationIds;
@@ -141,35 +152,32 @@ function evaluatePartitialOrCompleteError(result, mitgliedArray, callback) {
     //TODO nächster Release retryThe RetyIds?
 
     function isAllMessagesFailed() {
-        return allFailedIds.length === mitgliedArray.length;
+        return allFailedIds.length === regIdArray.length;
     }
 }
 
 /**
  * wertet das Result von FCM aus und gibt entsprechende Arrays im callback zurück
  * @param result
- * @param mitgliedArray
+ * @param regIdArray
  * @param callback
  */
-function evaluateResultForPartitialOrCompleteError(result, mitgliedArray, callback) {
+function evaluateResultForPartitialOrCompleteError(result, regIdArray, callback) {
 
     var removableRegistrationIds=[];
     var retryRegistrationIds=[];
     var replaceableRegistrationIds=[];
-    var failedMemberIds=[];
 
     /** @namespace entry.registration_id */
     /** @namespace entry.fk_mitglied_id */
-    mitgliedArray.forEach(function (entry){
-        var index = mitgliedArray.indexOf(entry);
+    regIdArray.forEach(function (entry){
+        var index = regIdArray.indexOf(entry);
         var currentFcmResult = result.results[index];
         if (currentFcmResult.error && (currentFcmResult.error==="NotRegistered" || currentFcmResult.error === "InvalidRegistration")){
             removableRegistrationIds.push(entry.registration_id);
-            failedMemberIds.push({mitglied_id:entry.fk_mitglied_id});
         }
         if (currentFcmResult.error && (currentFcmResult.error==="Unavailable" || currentFcmResult.error === "InternalServerError")){// todo nächster Release vielleicht retry bei diesen einbauen, wobei dann auch wieder rollback angepasst werden muss
             retryRegistrationIds.push(entry.registration_id);
-            failedMemberIds.push({mitglied_id:entry.fk_mitglied_id});
         }
         if (currentFcmResult.registration_id){
             replaceableRegistrationIds.push({oldId:entry.registration_id,newId:currentFcmResult.registration_id,mitglied_id:entry.fk_mitglied_id});
@@ -263,4 +271,4 @@ function exponentialBackoff(retryAfter, messageData, executeRollBackForId, event
     })
 }
 
-module.exports = forExport;
+module.exports = fcm;

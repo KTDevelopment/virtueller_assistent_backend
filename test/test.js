@@ -8,12 +8,13 @@ chai.use(chaiHttp);
 
 describe('PROJECTS', function() {
     var projects =[];
+    var user =[]
+    // TODO user anlegen
+    // TODO user_id zum project hinzufügen (fk_user_id)
     var project = {
         project_name:'testProject',
         starttime: new Date().getTime(),
         endtime: new Date().getTime()+10000,
-        editor_name: "Paul",
-        lecturer_name: "FOO",
         description: "Beauty Description of the project"
     };
     /*
@@ -33,6 +34,7 @@ describe('PROJECTS', function() {
                     res.body.editor_name.should.be.eql(project.editor_name);
                     res.body.lecturer_name.should.be.eql(project.lecturer_name);
                     res.body.description.should.be.eql(project.description);
+                    //define for further use
                     project.project_id = res.body.project_id;
                     done();
                 });
