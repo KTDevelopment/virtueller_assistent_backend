@@ -6,9 +6,124 @@ var should = chai.should();
 
 chai.use(chaiHttp);
 
+describe('USERS', function () {
+    var user = [];
+    var user = {
+        user_name:'username'
+    };
+
+    /*
+     * CREATE User
+     */
+
+    describe('POST /api/v1/users/', function (){
+        it('it should create a user', function(done) {
+            chai.request(server)
+                .post('/api/v1/users/',undefined,undefined)
+                .send({user:user})
+                .end( function (err, res) {
+                    res.should.have.status(200);
+                    res.body.should.be.a('object');
+                    res.body.user_name.should.be.eql(user.user_name);
+                    done();
+                });
+        });
+    });
+
+    /*
+     * GET all Users
+     */
+
+    describe('GET /api/v1/users', function (){
+        it('it should get all users', function(done) {
+            chai.request(server)
+                .get('/api/v1/users/')
+                .end( function (err, res) {
+                    res.should.have.status(200);
+                    res.body.should.be.a('array');
+                    res.body.length.should.be.above(0);
+                    users = res.body;
+                    done();
+                });
+        });
+    });
+
+    /*
+     * GET User by Id
+     */
+    describe('GET /api/v1/users/:id', function (){
+        it('it should get the user which we just created', function(done) {
+            chai.request(server)
+                .get('/api/v1/users/'+user.user_id)
+                .end( function (err, res) {
+                    res.should.have.status(200);
+                    res.body.should.be.a('object');
+                    res.body.user_id.should.be.eql(user.user_id);
+                    done();
+                });
+        });
+    });
+
+    /*
+     * PUT Update User by Id
+     */
+    describe('PUT /api/v1/users/:id', function (){
+        it('it should update the user which we just created', function(done) {
+            user.user_name = "Updated User";
+            chai.request(server)
+                .put('/api/v1/users/'+user.user_id,undefined,undefined)
+                .send({user:user})
+                .end( function (err, res) {
+                    res.should.have.status(200);
+                    res.body.should.be.a('object');
+                    res.body.user_name.should.be.eql(user.user_name);
+                    done();
+                });
+        });
+    });
+
+    /*
+     * POST regestration_id
+     */
+
+    describe('POST /api/v1/users/:user_id/registration_id', function (){
+        it('it should create a registration_id', function(done) {
+            chai.request(server)
+                .post('/api/v1/users/'+user.user_id+'/registration_id',undefined,undefined)
+                .send({user:user})
+                .end( function (err, res) {
+                    res.should.have.status(200);
+                    res.body.should.be.a('object');
+                    res.body.user_id.should.be.eql(user.user_id);
+                    res.body.registration_id.should.be.eql(user.registration_id);
+                    done();
+                });
+        });
+    });
+
+
+    /*
+     * DELETE delete User by id
+     */
+
+    describe('DELETE /api/v1/users/:id', function (){
+        it('it should delete the project which we just created', function(done) {
+            chai.request(server)
+                .delete('/api/v1/users/'+user.user_id,undefined)
+                .end( function (err, res) {
+                    res.should.have.status(200);
+                    res.body.should.be.a('object');
+                    done();
+                });
+        });
+    });
+
+});
+
+
 describe('PROJECTS', function() {
     var projects =[];
-    var user =[]
+    var user =[];
     // TODO user anlegen
     // TODO user_id zum project hinzufügen (fk_user_id)
     var project = {
@@ -17,6 +132,7 @@ describe('PROJECTS', function() {
         endtime: new Date().getTime()+10000,
         description: "Beauty Description of the project"
     };
+
     /*
      * CREATE Project
      */
@@ -111,6 +227,7 @@ describe('PROJECTS', function() {
                 });
         });
     });
+
     /*
      * DELETE delete Project by Id
      */
@@ -125,6 +242,8 @@ describe('PROJECTS', function() {
                 });
         });
     });
+
+
 });
 
 describe('MILESTONES', function() {
