@@ -90,4 +90,7 @@ function onListening() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
+  database.getAllUserIdsRelatedToOneProject(1, function (error, result) {
+      console.log(error,result);
+  })
 }

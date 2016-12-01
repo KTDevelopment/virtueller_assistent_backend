@@ -448,8 +448,15 @@ function getUserByName(userName,callback){
     });
 }
 
+
 function getAllUserIdsRelatedToOneProject(projectId,callback){
-    var query = "SELECT * FROM " + TABLE_NAME_USER ;
+    var query = "SELECT"+ TABLE_NAME_PROJECT + " as user_id " +
+    "FROM" + TABLE_NAME_PROJECT + " " +
+    "WHERE" + TABLE_NAME_PROJECT + projectId + " " +
+    "UNION " +
+    "SELECT" + TABLE_NAME_SHARED + " as user_id " +
+    "FROM" + TABLE_NAME_SHARED + " " +
+    "WHERE" + TABLE_NAME_SHARED + " ? ";
     var queryParams =[projectId];
     executeQuery(query,queryParams,callback)
 }
@@ -560,6 +567,10 @@ function updateRegistrationId(oldRegistrationId, newRegistrationId, mitglied_id,
         COL_NAME_DEVICE_FK_USER_ID+"=?";
     var queryparams=[newRegistrationId,oldRegistrationId,mitglied_id];
     executeQuery(query,queryparams,callback)
+}
+
+
+    
 }
 
 //---------------- Rollback -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/

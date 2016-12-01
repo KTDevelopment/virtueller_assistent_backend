@@ -8,9 +8,9 @@ var mysql = {
     connectionLimit: 100,
     host: 'localhost',
     user: 'root',
-    password: 'root',
+    password: '',
     database: 'virtueller_assistent',
-    port: '8889',
+    port: '8080',
     debug: false
 };
 
