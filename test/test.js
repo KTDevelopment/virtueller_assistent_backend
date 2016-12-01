@@ -65,24 +65,6 @@ describe('USERS', function () {
     });
 
     /*
-     * PUT Update User by Id
-     */
-    describe('PUT /api/v1/users/:id', function (){
-        it('it should update the user which we just created', function(done) {
-            user.user_name = "Updated User";
-            chai.request(server)
-                .put('/api/v1/users/'+user.user_id,undefined,undefined)
-                .send({user:user})
-                .end( function (err, res) {
-                    res.should.have.status(200);
-                    res.body.should.be.a('object');
-                    res.body.user_name.should.be.eql(user.user_name);
-                    done();
-                });
-        });
-    });
-
-    /*
      * POST regestration_id
      */
 

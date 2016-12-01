@@ -16,52 +16,46 @@ router.get('/', function(req, res, next) {
     })
 });
 
-router.post('/', function(req, res, next) {
-    var user = req.body.user;
-    database.saveUser(user,function(err,result){
-        if(!err){
-            res.json(result)
-        } else {
-            helper.sendResponse(res,err)
-        }
-    })
-});
+router.get('/:user_id_or_user_name', function(req, res, next) {
+    var isId;
 
-router.put('/:user_id', function(req, res, next) {
-    var userId = req.params.user_id;
-    var user_name = req.body.user_name;
-    if (!isNaN(userId)){
-        database.updateProject(userId,user_name,function(err,result){
+    if(isNaN(req.params.user_id_or_user_name)){
+        var userName = req.params.user_id_or_user_name;
+        isId = false;
+    }else{
+        var userId = parseInt(req.params.user_id_or_user_name, 10);
+        isId = true;
+    }
+
+    if(isId){
+        database.getUserById(userId,function(err,user){
             if(!err){
-                res.json(result)
-            } else {
+                res.json(user)
+            }else{
                 helper.sendResponse(res,err)
             }
         })
-    } else {
-        helper.sendResponse(res,error.getBadRequestError())
+    }else{
+        database.getUserByName(userName,function(err,user){
+            if(!err){
+                if(user.user_name){
+                    res.json(user)
+                }else{
+                    helper.sendResponse(res,error.getBadRequestError());
+                }
+            }else{
+                helper.sendResponse(res,err)
+            }
+        })
     }
-});
 
-router.get('/:user_id', function(req, res, next) {
-    try {
-        var userId = parseInt(req.params.user_id, 10);
-    }catch (e){
-        helper.sendResponse(res,error.getBadRequestError())
-    }
-    database.getUserById(userId,function(err,result){
-        if(!err){
-            res.json(result)
-        }else{
-            helper.sendResponse(res,err)
-        }
-    })
 });
 
 router.delete('/:user_id', function(req, res, next) {
+
     var userId = req.params.user_id;
     if (!isNaN(userId)) {
-        database.deleteProjectById(userId, function (err, result) {
+        database.deleteUserById(userId, function (err, result) {
             if (!err) {
                 res.json(result)
             } else {
@@ -114,13 +108,12 @@ router.post('/:user_id/registration_ids', function(req, res, next) {
 
     async.waterfall([getAvailableRegistrationIds,insertNewIdIfValid],function (err, result){
         if (!err){
-            helper.sendResponse(res,result);
+            res.json(result)
         }else{
             helper.sendResponse(res,err);
         }
     });
 });
-
 
 /**
  * liefert true wenn newRegistrationId nicht im Array vorhanden ist

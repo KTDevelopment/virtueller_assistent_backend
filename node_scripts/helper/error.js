@@ -34,6 +34,10 @@ function getForbiddenError(){
     return {"code": 403, body:{"status": "Forbidden"}};
 }
 
+function getUnauthorizedError(){
+    return {"code": 401, body:{"status": "Unauthorized"}}
+}
+
 /**
  * generiert ein Error JSON-Object
  * @returns JSON-Object
@@ -68,5 +72,6 @@ module.exports = {
     getServiceUnavailableError:getServiceUnavailableError,
     getPartitialOrCompleteFCMFailError:getPartitialOrCompleteFCMFailError,
     getFCMRequestFailedError:getFCMRequestFailedError,
-    getNotFoundError:getNotFoundError
+    getNotFoundError:getNotFoundError,
+    getUnauthorizedError:getUnauthorizedError
 };

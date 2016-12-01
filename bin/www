@@ -90,7 +90,4 @@ function onListening() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
-  fcm.projectActualized(101,function(err,result){
-    console.log(err,result)
-  })
 }

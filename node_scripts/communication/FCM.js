@@ -6,10 +6,9 @@ var error = require('./../helper/error');
 var helper = require('./../helper/helper');
 var config = require('./../config');
 
-var fcmService = require('node-gcm');
+var fcm = require('fcm-node');
 var backoff = require('./backoff.js');
 
-var fcm = {};
 
 //==================== Einstiegsfunktionen für FCM =========================================================================================================================================================================================================================================================
 
@@ -20,43 +19,54 @@ var fcm = {};
  */
 
 fcm.projectActualized = function(projectId, callback){
-    //datenbpaket beschreiben
     var data = {
         'type': '0'
     };
 
-    function getUserIds(projectId,callback){
-        database.getRegistrationIdsByProjectId(projectId,function(err,result){
-            if(!err){
-                callback(null,result)
-            }else{
-                callback(err,result)
-            }
-        })
-    }
-
-    async.waterfall([getUserIds], function (err, regIdArray) {
+    database.getRegistrationIdsByProjectId(projectId,function(err,result){
         if(!err){
-            var messageData = getMessageData(data,regIdArray);
+            var messageData = getMessageData(data,result);
             sendMessageToFCM(messageData,function(err,result){
                 if(!err){
                     callback(null,result);
                 }else{
-                    if(err.code==error.getServiceUnavailableError().code){
-                        callback(err,null);
-                        var retryAfter = 1000;
-                        exponentialBackoff(retryAfter,messageData,undefined,undefined,undefined);
-                    }else{
-                        callback(err,null);
-                    }
+                    callback(err,null);
                 }
             });
         }else{
-            callback(err,null);
+            callback(err,result)
         }
-
     });
 };
+
+fcm.projectShared = function(projectId,userId,callback){
+    var data = {
+        'type': '1'
+    };
+
+    database.getRegistrationIdsByUserId(userId,function(err,result){
+        if(!err){
+            if(result.length > 0){
+                var messageData = getMessageData(data,result);
+                sendMessageToFCM(messageData,function(err,result){
+                    if(!err){
+                        callback(null,result);
+                    }else{
+                        callback(err,null);
+                        performRollback(projectId,userId);
+                    }
+                });
+            }else{
+                callback(error.getBadRequestError(),null);
+                performRollback(projectId,userId);
+            }
+        }else{
+            callback(err,result);
+            performRollback(projectId,userId);
+        }
+    })
+};
+
 
 
 //==================== Funktionen für FCM =========================================================================================================================================================================================================================================================
@@ -65,35 +75,30 @@ fcm.projectActualized = function(projectId, callback){
  * @param messageData
  * @param callback
  */
-function sendMessageToFCM(messageData, callback){
+function
+sendMessageToFCM(messageData, callback){
 
     var message = messageData['message'];
-    var regIdArray = messageData['regIdArray'];
-    var adressArray = helper.formateRegistrationIdArray(regIdArray);
+    var mitgliedArray = messageData['mitgliedArray'];
 
     // Set up the sender with you API key.
-    var sender = new fcmService.Sender(config.fcm.api_key);
-    sender.send(message, { registrationTokens: adressArray }, function (err, response) {
+    var sender = new fcm(config.fcm.api_key);
+    sender.send(message, function (err, response) {
         if(!err) {
-            if(response.failure > 0){
-                // evaluate Partitial error
-                evaluatePartitialOrCompleteError(response,regIdArray,function(allFailed){
+            callback(null,response);
+        } else {
+            try {
+                var errorObject = JSON.parse(err);
+                // retry wird von fcm-node ausgeführt, falls nötig, todo test mit richtigem fcm key
+                evaluatePartitialOrCompleteError(errorObject,mitgliedArray,function(allFailed){
                     if(allFailed){
                         callback(error.getFCMRequestFailedError(),null);
+                        error.writeErrorLog("sendMessageToFCM",errorObject);
                     }else{
                         callback(null,response)
                     }
                 });
-            }else{
-                // complete success
-                callback(null,response);
-            }
-        } else {
-            if (err.code > 500 && err.code < 600){
-                //callback Server ist Busy
-                callback(error.getServiceUnavailableError(),null);
-            }else {
-                // complete error
+            }catch(e){
                 callback(error.getFCMRequestFailedError(),null);
                 error.writeErrorLog("sendMessageToFCM",err);
             }
@@ -106,16 +111,17 @@ function sendMessageToFCM(messageData, callback){
 /**
  * gibt eine Daten für eine FCM Message in einem JSON-Object zurück
  * @param data
- * @param regIdArray
- * @returns {{message: *, regIdArray: *}}
+ * @param mitgliedArray
+ * @returns {{message: *, mitgliedArray: *}}
  */
-function getMessageData(data,regIdArray) {
-    var message = new fcmService.Message({
+function getMessageData(data,mitgliedArray) {
+    var message = {
+        registration_ids: helper.formateRegistrationIdArray(mitgliedArray),
         data: data
-    });
+    };
     return {
         message: message,
-        regIdArray: regIdArray
+        mitgliedArray: mitgliedArray
     };
 }
 
@@ -128,7 +134,6 @@ function getMessageData(data,regIdArray) {
  * @param callback
  */
 function evaluatePartitialOrCompleteError(result, regIdArray, callback) {
-
     var removableIds=[];
     var retryIds=[];
     var replaceableIds=[];
@@ -193,18 +198,18 @@ function evaluateResultForPartitialOrCompleteError(result, regIdArray, callback)
 
 /**
  * fürht einen Rollback aus, die letzte Statusänderung einen Mitglieds soll dadurch wieder rückgängig gemacht werden, falls es nicht benachrichtigt werden kann
- * @param faildMemberId
- * @param eventId
- * @param oldStatus
+ * @param projectId
+ * @param userId
  */
-function performRollback(faildMemberId, eventId, oldStatus) {
+function performRollback(projectId, userId) {
 
-    database.rollback(faildMemberId.mitglied_id, eventId, oldStatus, function (err, result) {
+    database.rollback(projectId, userId, function (err, result) {
         if (err) {
             error.writeErrorLog("rollback", {
                 err: err,
-                id: faildMemberId,
-                message: "der Status dieser Person konnte für dieses Event: " + eventId + " nicht zu: " + oldStatus + "zurückgesetzt werden"
+                projectId: projectId,
+                userId:userId,
+                message: "Der Eintrag bestehend aus userId und projectId konnte nicht gelöscht werden"
             })
         }
     });
