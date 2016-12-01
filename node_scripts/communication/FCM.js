@@ -39,9 +39,12 @@ fcm.projectActualized = function(projectId, callback){
     });
 };
 
-fcm.projectShared = function(projectId,userId,callback){
+fcm.projectShared = function(sharingUserName,projectId,projectName,userId,callback){
     var data = {
-        'type': '1'
+        'type': '1',
+        'projectId':projectId,
+        'projectName':projectName,
+        'sharingUserName':sharingUserName
     };
 
     database.getRegistrationIdsByUserId(userId,function(err,result){
@@ -53,16 +56,49 @@ fcm.projectShared = function(projectId,userId,callback){
                         callback(null,result);
                     }else{
                         callback(err,null);
-                        performRollback(projectId,userId);
+                        performShareRollback(projectId,userId);
                     }
                 });
             }else{
                 callback(error.getBadRequestError(),null);
-                performRollback(projectId,userId);
+                performShareRollback(projectId,userId);
             }
         }else{
             callback(err,result);
-            performRollback(projectId,userId);
+            performShareRollback(projectId,userId);
+        }
+    })
+};
+
+fcm.milestoneNoteAdd = function (addingUserName, projectId, projectName, milestoneId, milestoneName, receiverId, callback) {
+    var data = {
+        'type': '2',
+        'projectId':projectId,
+        'projectName':projectName,
+        'addingUserName':addingUserName,
+        'milestoneId':milestoneId,
+        'milestoneName':milestoneName
+    };
+
+    database.getRegistrationIdsByUserId(receiverId,function(err,result){
+        if(!err){
+            if(result.length > 0){
+                var messageData = getMessageData(data,result);
+                sendMessageToFCM(messageData,function(err,result){
+                    if(!err){
+                        callback(null,result);
+                    }else{
+                        callback(err,null);
+                        performNoteAddRollback(projectId,receiverId);
+                    }
+                });
+            }else{
+                callback(error.getBadRequestError(),null);
+                performNoteAddRollback(projectId,receiverId);
+            }
+        }else{
+            callback(err,result);
+            performNoteAddRollback(projectId,receiverId);
         }
     })
 };
@@ -201,7 +237,21 @@ function evaluateResultForPartitialOrCompleteError(result, regIdArray, callback)
  * @param projectId
  * @param userId
  */
-function performRollback(projectId, userId) {
+function performShareRollback(projectId, userId) {
+
+    database.rollback(projectId, userId, function (err, result) {
+        if (err) {
+            error.writeErrorLog("rollback", {
+                err: err,
+                projectId: projectId,
+                userId:userId,
+                message: "Der Eintrag bestehend aus userId und projectId konnte nicht gelöscht werden"
+            })
+        }
+    });
+}
+
+function performNoteAddRollback(projectId, userId) {
 
     database.rollback(projectId, userId, function (err, result) {
         if (err) {
@@ -268,7 +318,7 @@ function exponentialBackoff(retryAfter, messageData, executeRollBackForId, event
             console.log("Exponential Backoff erfolgreich: ",result);
         }else{
             if (!isNaN(executeRollBackForId) && !isNaN(eventId) && !isNaN(oldStatus)){
-                performRollback(executeRollBackForId, eventId, oldStatus);
+                performShareRollback(executeRollBackForId, eventId, oldStatus);
             }else{
                 error.writeErrorLog("sendMessageToFCM",err);
             }

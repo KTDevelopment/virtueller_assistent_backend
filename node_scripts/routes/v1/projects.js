@@ -87,6 +87,9 @@ router.put('/:project_id', function(req, res, next) {
 
 });
 
+/**
+ * löscht ein Projekt mittels der Projekt_Id
+ */
 router.delete('/:project_id', function(req, res, next) {
     var projectId = req.params.project_id;
     if (!isNaN(projectId)) {
@@ -102,9 +105,18 @@ router.delete('/:project_id', function(req, res, next) {
     }
 });
 
+/**
+ * fügt ein User zu einem Projekt hinzu.
+ * Bedingungen:
+ *          neuer User != Owner des Projektes
+ *          neuer User hat Registration_Id
+ */
 router.post('/:project_id/share', function(req, res, next){
     var projectId = req.params.project_id;
     var userName = req.body.user_name;
+
+    var sharingUserName = req.callingUserName;
+    var callingUserId = req.callingUserId;
 
     function getUser(callback){
         database.getUserByName(userName,function(err,user){
@@ -116,24 +128,48 @@ router.post('/:project_id/share', function(req, res, next){
         })
     }
 
-    async.waterfall([getUser],function (err, user){
+    function getProject(user, callback) {
+        database.getProjectById(projectId,function (err, project) {
+            if(!err){
+                callback(null,user,project)
+            }else{
+                callback(err,null,null)
+            }
+        })
+    }
+
+    function getAllUserIdsRelatedToOneProject(user,project,callback) {
+        database.getAllUserIdsRelatedToOneProject(projectId,callback,function (err, relatedUserIds) {
+            if(!err){
+                callback(null,user,project,relatedUserIds)
+            }else{
+                callback(err,null)
+            }
+        })
+    }
+
+    async.waterfall([getUser,getProject,getAllUserIdsRelatedToOneProject],function (err, user, project, relatedUserIds){
         if (!err){
-            var userId = parseInt(user.user_id);
-            console.log(userId);
-            if(userId){
-                database.addUserToProject(userId,projectId,function(err,result){
-                    if(!err){
-                        fcm.projectShared(projectId,userId,function(err,result){
-                            if(!err){
-                                res.json(result);
-                            }else{
-                                helper.sendResponse(res,err);
-                            }
-                        })
-                    }else{
-                        helper.sendResponse(res,err);
-                    }
-                })
+            var userId = user.user_id;
+            var projectOwnerId = project.fk_user_id;
+            if(userId && projectOwnerId && userId != projectOwnerId){
+                if(relatedUserIds.indexOf(callingUserId) > (-1)){
+                    database.addUserToProject(userId,projectId,function(err,result){
+                        if(!err){
+                            fcm.projectShared(sharingUserName,projectId,project.project_name,userId,function(err,result){
+                                if(!err){
+                                    res.json(result);
+                                }else{
+                                    helper.sendResponse(res,err);
+                                }
+                            })
+                        }else{
+                            helper.sendResponse(res,err);
+                        }
+                    })
+                }else{
+                    helper.sendResponse(res,error.getForbiddenError())
+                }
             }else{
                 helper.sendResponse(res,error.getBadRequestError())
             }
@@ -216,6 +252,79 @@ router.post('/:project_id/milestones',function(req,res,next){
     }else {
         helper.sendResponse(res, error.getBadRequestError())
     }
+});
+
+router.post('/:project_id/milestones/:milestone_id/note',function (req, res, next) {
+
+    var projectId = parseInt(req.params.project_id, 10);
+    var milestoneId = parseInt(req.params.milestone_id, 10);
+    var note = req.body.note;
+
+    var callingUserName = req.callingUserName;
+    var callingUserId = req.callingUserId;
+
+    function getProjekt(callback) {
+        if(!isNaN(projectId)){
+            database.getProjectById(projectId,milestoneId,function (err, project) {
+                if(!err){
+                    callback(null,project)
+                }else{
+                    callback(err,null)
+                }
+            })
+        }
+    }
+
+    function getMilestone(project,callback) {
+        if (!isNaN(milestoneId)) {
+            database.getMilestoneById(projectId,milestoneId,function (err, milestone) {
+                if(!err){
+                    callback(null,project,milestone)
+                }else{
+                    callback(err,null)
+                }
+            })
+        } else {
+            callback(error.getBadRequestError(),null)
+        }
+    }
+
+    function getAllUserIdsRelatedToOneProject(project,milestone,callback) {
+        database.getAllUserIdsRelatedToOneProject(projectId,callback,function (err, relatedUserIds) {
+            if(!err){
+                callback(null,project,milestone,relatedUserIds)
+            }else{
+                callback(err,null)
+            }
+        })
+    }
+
+    async.waterfall([getProjekt,getMilestone,getAllUserIdsRelatedToOneProject],function (err, project, milestone, relatedUserIds){
+        if (!err){
+            // if User gehört zum Projekt
+            if(relatedUserIds.indexOf(callingUserId) > (-1)){
+                database.addNoteToMilestone(projectId,milestoneId,note, function (err, result) {
+                    if (!err) {
+                        fcm.milestoneNoteAdd(callingUserName,projectId,project.project_name,milestoneId,milestone.milestone_name,userId,function(err,result){
+                            if(!err){
+                                res.json(result);
+                            }else{
+                                helper.sendResponse(res,err);
+                            }
+                        })
+                    } else {
+                        helper.sendResponse(res, err)
+                    }
+                });
+            }else{
+                helper.sendResponse(res,error.getForbiddenError())
+            }
+        }else{
+            helper.sendResponse(res,err);
+        }
+    });
+
+
 });
 
 router.put('/:project_id/milestones/:milestone_id', function(req, res, next) {

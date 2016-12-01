@@ -212,6 +212,32 @@ function addMilestone(milestone,callback){
     });
 }
 
+function addNoteToMilestone(projectId, milestoneId, note,callback){
+    var query =
+        "UPDATE "+
+        TABLE_NAME_MILESTONE+" " +
+        "SET " +
+        COL_NAME_MILESTONE_NOTE+" = ? " +
+        "WHERE " +
+        COL_NAME_MILESTONE_ID+ " = ? AND " +
+        COL_NAME_MILESTONE_FK_PROJECT+" = ? ";
+    var queryParams =[note,milestoneId, projectId];
+    console.log(query,queryParams);
+    executeQuery(query,queryParams,function(err, result){
+        if (!err){
+            console.log(result);
+            if(result.message.Changed = 1){
+                var successJson = {add:true};
+                callback(null,successJson);
+            }else {
+                callback(error.getBadRequestError(),null);
+            }
+        }else{
+            callback(err,null)
+        }
+    });
+}
+
 function deleteMilestoneById(projectId, milestoneId,callback){
     var query =
         "DELETE FROM "+
@@ -422,6 +448,12 @@ function getUserByName(userName,callback){
     });
 }
 
+function getAllUserIdsRelatedToOneProject(projectId,callback){
+    var query = "SELECT * FROM " + TABLE_NAME_USER ;
+    var queryParams =[projectId];
+    executeQuery(query,queryParams,callback)
+}
+
 //---------------- alle Funktionen zu Geräten und RegistartionIds Bestandsdaten -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 
 /**
@@ -604,6 +636,7 @@ module.exports = {
     getProjects:getProjects,
     getProjectById:getProjectById,
     addMilestone:addMilestone,
+    addNoteToMilestone:addNoteToMilestone,
     deleteMilestoneById:deleteMilestoneById,
     updateMilestone:updateMilestone,
     getMilestones:getMilestones,
@@ -615,5 +648,6 @@ module.exports = {
     getUserById:getUserById,
     getUserByNameAndPassword:getUserByNameAndPassword,
     getUserByName:getUserByName,
-    addUserToProject:addUserToProject
+    addUserToProject:addUserToProject,
+    getAllUserIdsRelatedToOneProject:getAllUserIdsRelatedToOneProject
 };

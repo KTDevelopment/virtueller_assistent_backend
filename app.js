@@ -21,6 +21,8 @@ var auth = function (req, res, next) {
     if(!err){
       // wenn user valide, dann stehen seine daten im result
       if(user.user_name && user.password){
+        req.callingUserId = user.user_id;
+        req.callingUserName = userName;
         next()
       }else{
         res.json(error.getUnauthorizedError())
