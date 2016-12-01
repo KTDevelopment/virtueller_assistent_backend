@@ -7,7 +7,7 @@ var router = express.Router();
 
 
 router.get('/', function(req, res, next) {
-    database.getUsers(function(err,result){
+    database.user.getList(function(err, result){
         if(!err){
             res.json(result)
         }else{
@@ -28,7 +28,7 @@ router.get('/:user_id_or_user_name', function(req, res, next) {
     }
 
     if(isId){
-        database.getUserById(userId,function(err,user){
+        database.user.getById(userId,function(err, user){
             if(!err){
                 res.json(user)
             }else{
@@ -36,7 +36,7 @@ router.get('/:user_id_or_user_name', function(req, res, next) {
             }
         })
     }else{
-        database.getUserByName(userName,function(err,user){
+        database.user.getByName(userName,function(err, user){
             if(!err){
                 if(user.user_name){
                     res.json(user)
@@ -55,7 +55,7 @@ router.delete('/:user_id', function(req, res, next) {
 
     var userId = req.params.user_id;
     if (!isNaN(userId)) {
-        database.deleteUserById(userId, function (err, result) {
+        database.user.remove(userId, function (err, result) {
             if (!err) {
                 res.json(result)
             } else {
@@ -67,64 +67,64 @@ router.delete('/:user_id', function(req, res, next) {
     }
 });
 
-// Registration ID
-
-router.post('/:user_id/registration_ids', function(req, res, next) {
-    var userId = req.params.user_id;
-    var newRegistrationId = req.body.registration_id;
-
-    function getAvailableRegistrationIds(callback){
-        if (!isNaN(userId)){
-            database.getRegistrationIdsByUserId(userId,function(err,result){
-                if(!err) {
-                    callback(null,result);
-                } else {
-                    callback(err,null);
-                }
-            });
-        }else{
-            callback(error.getBadRequestError(),null);
-        }
-    }
-
-    function insertNewIdIfValid(availableRegistratinIds,callback){
-        if (isNewRegistrationIdValid(newRegistrationId,availableRegistratinIds)) {
-            if (!isNaN(userId)){
-                database.saveRegistrationId(newRegistrationId,userId, function (err, result) {
-                    if(!err) {
-                        callback(null, result);
-                    } else {
-                        callback(err,null);
-                    }
-                });
-            }else{
-                callback(error.getBadRequestError(),null);
-            }
-        }else{
-            //No Content und kein error, da es kein Fehler vom Client war die Id zu senden
-            callback(null,helper.getNoContentResponse());
-        }
-    }
-
-    async.waterfall([getAvailableRegistrationIds,insertNewIdIfValid],function (err, result){
-        if (!err){
-            res.json(result)
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
-});
-
-/**
- * liefert true wenn newRegistrationId nicht im Array vorhanden ist
- * @param newRegistrationId
- * @param availableRegistratinIds
- * @returns {boolean}
- */
-function isNewRegistrationIdValid(newRegistrationId, availableRegistratinIds) {
-    // return false wenn neue_id ist in availableIds
-    var formattedArray = helper.formateRegistrationIdArray(availableRegistratinIds);
-    return !helper.isInArray(formattedArray,newRegistrationId);
-}
+// // Registration ID
+//
+// router.post('/:user_id/registration_ids', function(req, res, next) {
+//     var userId = req.params.user_id;
+//     var newRegistrationId = req.body.registration_id;
+//
+//     function getAvailableRegistrationIds(callback){
+//         if (!isNaN(userId)){
+//             database.user.getListByUserId(userId,function(err, result){
+//                 if(!err) {
+//                     callback(null,result);
+//                 } else {
+//                     callback(err,null);
+//                 }
+//             });
+//         }else{
+//             callback(error.getBadRequestError(),null);
+//         }
+//     }
+//
+//     function insertNewIdIfValid(availableRegistratinIds,callback){
+//         if (isNewRegistrationIdValid(newRegistrationId,availableRegistratinIds)) {
+//             if (!isNaN(userId)){
+//                 database.registrationId.save(newRegistrationId, userId, function (err, result) {
+//                     if(!err) {
+//                         callback(null, result);
+//                     } else {
+//                         callback(err,null);
+//                     }
+//                 });
+//             }else{
+//                 callback(error.getBadRequestError(),null);
+//             }
+//         }else{
+//             //No Content und kein error, da es kein Fehler vom Client war die Id zu senden
+//             callback(null,helper.getNoContentResponse());
+//         }
+//     }
+//
+//     async.waterfall([getAvailableRegistrationIds,insertNewIdIfValid],function (err, result){
+//         if (!err){
+//             res.json(result)
+//         }else{
+//             helper.sendResponse(res,err);
+//         }
+//     });
+// });
+//
+// /**
+//  * liefert true wenn newRegistrationId nicht im Array vorhanden ist
+//  * @param newRegistrationId
+//  * @param availableRegistratinIds
+//  * @returns {boolean}
+//  */
+// function isNewRegistrationIdValid(newRegistrationId, availableRegistratinIds) {
+//     // return false wenn neue_id ist in availableIds
+//     var formattedArray = helper.formateRegistrationIdArray(availableRegistratinIds);
+//     return !helper.isInArray(formattedArray,newRegistrationId);
+// }
 
 module.exports = router;

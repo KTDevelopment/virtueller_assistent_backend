@@ -4,30 +4,14 @@ var fs = require('file-system');
 var glob = require('glob');
 var config = require('./../config');
 
+var helper = {};
+
 //==================== Hilfsfunktionnen =========================================================================================================================================================================================================================================================
 
-function isEmptyObject(obj) {
-    return !Object.keys(obj).length;
-}
-
-function isInArray(array,needle) {
+helper.isInArray = function (array,needle) {
     var index = array.indexOf(needle);
     return index > -1;
-}
-
-/**
- * löscht Duplicate aus einem Array, JSON.stringify kann als key verwendet werden
- * @param a
- * @param key
- * @returns {*}
- */
-function uniqBy(a, key) {
-    var seen = {};
-    return a.filter(function(item) {
-        var k = key(item);
-        return seen.hasOwnProperty(k) ? false : (seen[k] = true);
-    })
-}
+};
 
 /**
  * überschreibt values von obj1 mit denen von obj2 und fügt aus obj2 die hinzu welche nicht in obj1 vorhanden waren
@@ -35,7 +19,7 @@ function uniqBy(a, key) {
  * @param obj2
  * @returns {{}}
  */
-function mergeProperties(obj1,obj2){
+helper.mergeProperties = function (obj1,obj2){
     var obj3 ={};
     for (var attrname in obj1){
         obj3[attrname]=obj1[attrname];
@@ -44,14 +28,14 @@ function mergeProperties(obj1,obj2){
         obj3[attrname]=obj2[attrname];
     }
     return obj3;
-}
+};
 
 /**
  * formatiert ein Array in dem registration_ids stehen so, das nurnoch die ids drin sind, keine bezeichnungen etc
  * @param idArray
  * @returns {*}
  */
-function formateRegistrationIdArray(idArray) {
+helper.formateRegistrationIdArray = function (idArray) {
     if (idArray.length > 0){
         return idArray.map(function (row) {
             return row.registration_id;
@@ -59,12 +43,12 @@ function formateRegistrationIdArray(idArray) {
     }else{
         return idArray;
     }
-}
+};
 
 //==================== SuccesResults inclusive Send Funktion =========================================================================================================================================================================================================================================================
 
 
-function getFCMSuccessJSON(fcmResult) {
+helper.getFCMSuccessJSON = function (fcmResult) {
     return {
         code:200,
         body:{
@@ -72,9 +56,9 @@ function getFCMSuccessJSON(fcmResult) {
             results: fcmResult
         }
     };
-}
+};
 
-function getMultiStatusResponse(responseArray){
+helper.getMultiStatusResponse = function (responseArray){
     return {
         code: 207,
         body:{
@@ -82,9 +66,9 @@ function getMultiStatusResponse(responseArray){
         }
 
     }
-}
+};
 
-function getRestSuccessResponse(){
+helper.getRestSuccessResponse = function (){
     return{
         code:200,
         body:{
@@ -92,35 +76,33 @@ function getRestSuccessResponse(){
             message: "Die Änderung in der Datenbank war erfolgreich"
         }
     }
-}
+};
 
-function getRollbackNotification(){
+helper.getRollbackNotification = function (){
     return {
         "code": 910,
         body:{
             "status": "Die Änderung in der Datenbank wurde zurückgesetzt"
         }
     }
-}
+};
 
-function getNoContentResponse(){
+helper.getNoContentResponse = function (){
     return {
         "code": 200,
-        body:{
-            "status": "No Content"
-        }
+        body:{}
     };
-}
+};
 
 /**
  * senden den übergebenen body, an die übergebene Response
  * @param response
  * @param body
  */
-function sendResponse(response, body){
+helper.sendResponse = function (response, body){
     response.status(body.code);
     response.json(body.body);
-}
+};
 
 //==================== File Funktionen =========================================================================================================================================================================================================================================================
 
@@ -141,31 +123,17 @@ function writeToFile(filePath,logtext){
  * @param kind
  * @param info
  */
-function writeLog(kind,info){
+helper.writeLog = function (kind,info){
     var name = kind+"-Log vom ";
     var timestamp = new Date().getTime();
     var datetime = new Date(timestamp);
     var datumFormatted = datetime.getDate()+"_"+(datetime.getMonth()+1)+"_"+datetime.getFullYear();
     var fileName = name+datumFormatted+".txt";
     var logFilePath = kind+"_log/"+fileName;
+    //var logFilePath = "/home/ftpuser/virtueller_assistent/error_log/"+fileName;
+    console.log(logFilePath);
     var logText = datetime+","+JSON.stringify(info)+"\n";
     writeToFile(logFilePath,logText)
-}
-
-
-
-module.exports = {
-    isEmptyObject: isEmptyObject,
-    isInArray:isInArray,
-    sendResponse:sendResponse,
-    getFCMSuccessJSON:getFCMSuccessJSON,
-    formateRegistrationIdArray:formateRegistrationIdArray,
-    writeToFile:writeToFile,
-    uniqBy:uniqBy,
-    getMultiStatusResponse:getMultiStatusResponse,
-    getRestSuccessResponse:getRestSuccessResponse,
-    mergeProperties:mergeProperties,
-    writeLog:writeLog,
-    getRollbackNotification:getRollbackNotification,
-    getNoContentResponse:getNoContentResponse
 };
+
+module.exports = helper;

@@ -10,6 +10,7 @@ var http = require('http');
 
 var database = require('../node_scripts/database/mySQL');
 var fcm = require('./../node_scripts/communication/FCM');
+var error = require('./../node_scripts/helper/error');
 
 /**
  * Get port from environment and store in Express.
@@ -90,7 +91,4 @@ function onListening() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
-  database.getAllUserIdsRelatedToOneProject(1, function (error, result) {
-      console.log(error,result);
-  })
 }

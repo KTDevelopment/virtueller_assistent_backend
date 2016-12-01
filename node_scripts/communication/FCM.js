@@ -6,24 +6,27 @@ var error = require('./../helper/error');
 var helper = require('./../helper/helper');
 var config = require('./../config');
 
-var fcm = require('fcm-node');
-var backoff = require('./backoff.js');
+var fcmService = require('fcm-node');
 
+var fcm = {};
 
 //==================== Einstiegsfunktionen für FCM =========================================================================================================================================================================================================================================================
 
 /**
  * einstieg in fcmService cycle, für erste funktion (muss noch festgelegt werden
  * @param projectId
+ * @param callingUserName
  * @param callback
  */
 
-fcm.projectActualized = function(projectId, callback){
+fcm.projectActualized = function(projectId,callingUserName, callback){
     var data = {
-        'type': '0'
+        'type': '0',
+        'projectId':projectId,
+        'callingUser':callingUserName
     };
-
-    database.getRegistrationIdsByProjectId(projectId,function(err,result){
+    // TODO Rollback nur versenden wenn Registration Id da ist
+    database.registrationId.getListByProjectId(projectId,function(err, result){
         if(!err){
             var messageData = getMessageData(data,result);
             sendMessageToFCM(messageData,function(err,result){
@@ -39,15 +42,37 @@ fcm.projectActualized = function(projectId, callback){
     });
 };
 
-fcm.projectShared = function(sharingUserName,projectId,projectName,userId,callback){
+fcm.projectDeleted = function (projectId, callingUserName, callback) {
     var data = {
         'type': '1',
         'projectId':projectId,
-        'projectName':projectName,
+        'callingUser':callingUserName
+    };
+ // TODO Rollback nur versenden wenn Registration Id da ist
+    database.registrationId.getListByProjectId(projectId,function(err, result){
+        if(!err){
+            var messageData = getMessageData(data,result);
+            sendMessageToFCM(messageData,function(err,result){
+                if(!err){
+                    callback(null,result);
+                }else{
+                    callback(err,null);
+                }
+            });
+        }else{
+            callback(err,result)
+        }
+    });
+};
+
+fcm.projectShared = function(projectId, userId, sharingUserName, callback){
+    var data = {
+        'type': '2',
+        'projectId':projectId,
         'sharingUserName':sharingUserName
     };
 
-    database.getRegistrationIdsByUserId(userId,function(err,result){
+    database.registrationId.getListByUserId(userId,function(err, result){
         if(!err){
             if(result.length > 0){
                 var messageData = getMessageData(data,result);
@@ -70,17 +95,15 @@ fcm.projectShared = function(sharingUserName,projectId,projectName,userId,callba
     })
 };
 
-fcm.milestoneNoteAdd = function (addingUserName, projectId, projectName, milestoneId, milestoneName, receiverId, callback) {
+fcm.milestoneAdd = function (projectId, milestoneId, callingUserName,  callback) {
     var data = {
-        'type': '2',
+        'type': '3',
         'projectId':projectId,
-        'projectName':projectName,
-        'addingUserName':addingUserName,
         'milestoneId':milestoneId,
-        'milestoneName':milestoneName
+        'callingUserName':callingUserName
     };
 
-    database.getRegistrationIdsByUserId(receiverId,function(err,result){
+    database.registrationId.getListByProjectId(projectId,function(err, result){
         if(!err){
             if(result.length > 0){
                 var messageData = getMessageData(data,result);
@@ -89,20 +112,110 @@ fcm.milestoneNoteAdd = function (addingUserName, projectId, projectName, milesto
                         callback(null,result);
                     }else{
                         callback(err,null);
-                        performNoteAddRollback(projectId,receiverId);
+                        //TODO rollback
                     }
                 });
             }else{
                 callback(error.getBadRequestError(),null);
-                performNoteAddRollback(projectId,receiverId);
+                //TODO rollback
             }
         }else{
             callback(err,result);
-            performNoteAddRollback(projectId,receiverId);
+            //TODO rollback
         }
     })
 };
 
+fcm.milestoneActualized = function (projectId, milestoneId, callingUserName, callback) {
+    var data = {
+        'type': '4',
+        'projectId':projectId,
+        'milestoneId':milestoneId,
+        'callingUserName':callingUserName
+    };
+
+    database.registrationId.getListByProjectId(projectId,function(err, result){
+        if(!err){
+            if(result.length > 0){
+                var messageData = getMessageData(data,result);
+                sendMessageToFCM(messageData,function(err,result){
+                    if(!err){
+                        callback(null,result);
+                    }else{
+                        callback(err,null);
+                        //TODO multimassage bzurück geben, kein raollback, änderung bleibt trotzdem in der datenbank bestehen
+                    }
+                });
+            }else{
+                callback(error.getBadRequestError(),null);
+                //TODO rollback
+            }
+        }else{
+            callback(err,result);
+            //TODO rollback
+        }
+    })
+};
+
+fcm.milestoneNoteAdd = function (projectId, projectName, milestoneId, addingUserName, callback) {
+    var data = {
+        'type': '5',
+        'projectId':projectId,
+        'projectName':projectName,
+        'addingUserName':addingUserName,
+        'milestoneId':milestoneId
+    };
+
+    database.registrationId.getListByProjectId(projectId,function(err, result){
+        if(!err){
+            if(result.length > 0){
+                var messageData = getMessageData(data,result);
+                sendMessageToFCM(messageData,function(err,result){
+                    if(!err){
+                        callback(null,result);
+                    }else{
+                        callback(err,null);
+                    }
+                });
+            }else{
+                callback(error.getBadRequestError(),null);
+            }
+        }else{
+            callback(err,result);
+        }
+    })
+};
+
+fcm.milestoneDeleted = function (projectId, milestoneId, callingUserName, callback) {
+    var data = {
+        'type': '6',
+        'projectId':projectId,
+        'milestoneId':milestoneId,
+        'callingUserName':callingUserName
+    };
+
+    database.registrationId.getListByProjectId(projectId,function(err, result){
+        if(!err){
+            if(result.length > 0){
+                var messageData = getMessageData(data,result);
+                sendMessageToFCM(messageData,function(err,result){
+                    if(!err){
+                        callback(null,result);
+                    }else{
+                        callback(err,null);
+                        //TODO multimassage bzurück geben, kein raollback, änderung bleibt trotzdem in der datenbank bestehen
+                    }
+                });
+            }else{
+                callback(error.getBadRequestError(),null);
+                //TODO rollback
+            }
+        }else{
+            callback(err,result);
+            //TODO rollback
+        }
+    })
+}
 
 
 //==================== Funktionen für FCM =========================================================================================================================================================================================================================================================
@@ -113,19 +226,16 @@ fcm.milestoneNoteAdd = function (addingUserName, projectId, projectName, milesto
  */
 function
 sendMessageToFCM(messageData, callback){
-
     var message = messageData['message'];
     var mitgliedArray = messageData['mitgliedArray'];
 
-    // Set up the sender with you API key.
-    var sender = new fcm(config.fcm.api_key);
+    var sender = new fcmService(config.fcm.api_key);
     sender.send(message, function (err, response) {
         if(!err) {
             callback(null,response);
         } else {
             try {
                 var errorObject = JSON.parse(err);
-                // retry wird von fcm-node ausgeführt, falls nötig, todo test mit richtigem fcm key
                 evaluatePartitialOrCompleteError(errorObject,mitgliedArray,function(allFailed){
                     if(allFailed){
                         callback(error.getFCMRequestFailedError(),null);
@@ -190,8 +300,6 @@ function evaluatePartitialOrCompleteError(result, regIdArray, callback) {
 
     replaceTheReplaceables(replaceableIds);
 
-    //TODO nächster Release retryThe RetyIds?
-
     function isAllMessagesFailed() {
         return allFailedIds.length === regIdArray.length;
     }
@@ -238,21 +346,6 @@ function evaluateResultForPartitialOrCompleteError(result, regIdArray, callback)
  * @param userId
  */
 function performShareRollback(projectId, userId) {
-
-    database.rollback(projectId, userId, function (err, result) {
-        if (err) {
-            error.writeErrorLog("rollback", {
-                err: err,
-                projectId: projectId,
-                userId:userId,
-                message: "Der Eintrag bestehend aus userId und projectId konnte nicht gelöscht werden"
-            })
-        }
-    });
-}
-
-function performNoteAddRollback(projectId, userId) {
-
     database.rollback(projectId, userId, function (err, result) {
         if (err) {
             error.writeErrorLog("rollback", {
@@ -272,7 +365,7 @@ function performNoteAddRollback(projectId, userId) {
 function removeTheRemovables(removableIds) {
 //nicht mehr registrierte registratiom ids löschen
     removableIds.forEach(function (entry) {
-        database.deleteRegistrationId(entry, function (err, result) {
+        database.remove(entry, function (err, result) {
             if (err) {
                 error.writeErrorLog("deleteRegistrationId", {
                     err: err,
@@ -291,7 +384,7 @@ function removeTheRemovables(removableIds) {
 function replaceTheReplaceables(replaceableIds) {
 //ersetzbare ids ersetzen
     replaceableIds.forEach(function (entry) {
-        database.updateRegistrationId(entry.oldId, entry.newId, entry.mitglied_id, function (err, result) {
+        database.update(entry.oldId, entry.newId, entry.mitglied_id, function (err, result) {
             if (err) {
                 error.writeErrorLog("updateRegistrationId", {
                     err: err,
@@ -303,27 +396,5 @@ function replaceTheReplaceables(replaceableIds) {
     })
 }
 
-/**
- * führt ein fibonacci backoff aus, ruft die Fkt "sendMessageToFCM" mehrmals auf und führt falls nötig, ein rollback aus
- * @param retryAfter
- * @param messageData
- * @param executeRollBackForId
- * @param eventId
- * @param oldStatus
- */
-function exponentialBackoff(retryAfter, messageData, executeRollBackForId, eventId, oldStatus){
-    var retryTimes = 5;
-    backoff.exponentialBackoff(retryAfter, retryTimes, sendMessageToFCM, messageData,function(err,result){
-        if(!err){
-            console.log("Exponential Backoff erfolgreich: ",result);
-        }else{
-            if (!isNaN(executeRollBackForId) && !isNaN(eventId) && !isNaN(oldStatus)){
-                performShareRollback(executeRollBackForId, eventId, oldStatus);
-            }else{
-                error.writeErrorLog("sendMessageToFCM",err);
-            }
-        }
-    })
-}
 
 module.exports = fcm;

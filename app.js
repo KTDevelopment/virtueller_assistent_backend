@@ -4,6 +4,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var error = require('./node_scripts/helper/error');
+var helper = require('./node_scripts/helper/helper');
 var database = require('./node_scripts/database/mySQL');
 
 
@@ -12,30 +13,45 @@ var api = require('./node_scripts/routes/api');
 var apiV1 = require('./node_scripts/routes/v1/api');
 var preferences = require('./node_scripts/routes/v1/preferences');
 var users = require('./node_scripts/routes/v1/users');
+var registration_ids = require('./node_scripts/routes/v1/registration_ids');
 var projects = require('./node_scripts/routes/v1/projects');
 
 var auth = function (req, res, next) {
-  var userName = req.headers.user_name;
-  var password = req.headers.password;
-  database.getUserByNameAndPassword(userName,password,function(err,user){
-    if(!err){
-      // wenn user valide, dann stehen seine daten im result
-      if(user.user_name && user.password){
-        req.callingUserId = user.user_id;
-        req.callingUserName = userName;
-        next()
-      }else{
-        res.json(error.getUnauthorizedError())
-      }
-    }else{
-      res.json(error.getUnauthorizedError())
+    var auth;
+    // check whether an autorization header was send
+    if (req.headers.authorization) {
+        // only accepting basic auth, so:
+        // * cut the starting "Basic " from the header
+        // * decode the base64 encoded username:password
+        // * split the string at the colon
+        // -> should result in an array
+        auth = new Buffer(req.headers.authorization.substring(6), 'base64').toString().split(':');
+        var userName = auth[0];
+        var password = auth[1];
     }
-  });
+    if(auth && userName && password){
+        database.user.getByNameAndPassword(userName,password,function(err, user){
+            if(!err){
+                // wenn user valide, dann stehen seine daten im result
+                if(user.user_name == userName && user.password == password){
+                    req.callingUserId = user.user_id;
+                    req.callingUserName = userName;
+                    next()
+                }else{
+                    helper.sendResponse(res,error.getUnauthorizedError());
+                }
+            }else{
+                helper.sendResponse(res,error.getUnauthorizedError());
+            }
+        });
+    }else{
+        helper.sendResponse(res,error.getUnauthorizedError());
+    }
 };
 
 var app = express();
 
-//app.use(logger('dev'));
+app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -46,6 +62,7 @@ app.use('/api/v1', apiV1);
 app.use('/api/v1/preferences',preferences);
 app.use('/api/v1/secured',auth);
 app.use('/api/v1/secured/users', users);
+app.use('/api/v1/secured/registration_ids', registration_ids);
 app.use('/api/v1/secured/projects', projects);
 
 // catch 404 and forward to error handler
