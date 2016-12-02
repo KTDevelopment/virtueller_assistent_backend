@@ -45,6 +45,7 @@ const COL_NAME_DEVICE_FK_USER_ID=TABLE_NAME_DEVICE+"."+"fk_user_id";
 const COL_NAME_USER_ID = TABLE_NAME_USER+"."+"user_id";
 const COL_NAME_USER_NAME = TABLE_NAME_USER+"."+"user_name";
 const COL_NAME_USER_PASSWORD = TABLE_NAME_USER+"."+"password";
+const COL_NAME_USER_EMAIL = TABLE_NAME_USER+"."+"email";
 
 //TABLE SHARED COLS
 const COL_NAME_SHARED_FK_USER_ID = TABLE_NAME_SHARED+"."+"fk_user_id";
@@ -370,11 +371,11 @@ milestone.getById = function (projectId, milestoneId, callback){
 
 //---------------- Funktionen für user -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 
-user.save = function (userName, password, callback){
-    var user ={
-        user_name:userName,
-        password:password
-    };
+user.save = function (userName, password, email, callback){
+    var user = {};
+    user[COL_NAME_USER_NAME]=userName;
+    user[COL_NAME_USER_PASSWORD]=password;
+    user[COL_NAME_USER_EMAIL]=email;
     var query =
         "INSERT INTO " +
         TABLE_NAME_USER + " " +
@@ -382,10 +383,10 @@ user.save = function (userName, password, callback){
     var queryParams =[user];
     executeQuery(query,queryParams,function(err, result){
         if(!err){
-            console.log(user);
-            var createdUser = user;
-            createdUser.user_id = result.insertId;
-            callback(null,createdUser);
+            var answer = {
+                user_id:result.insertId
+            };
+            callback(null,answer);
         }else{
             callback(err,null);
         }
@@ -455,14 +456,14 @@ user.getById = function (userId, callback){
     });
 };
 
-user.getByNameAndPassword = function (userName, password, callback){
+user.getByEmailAndPassword = function (email, password, callback){
     var query =
         "SELECT * FROM " +
         TABLE_NAME_USER + " " +
         "WHERE " +
-        COL_NAME_USER_NAME+" = ? AND " +
+        COL_NAME_USER_EMAIL+" = ? AND " +
         COL_NAME_USER_PASSWORD+"= ?" ;
-    var queryParams =[userName,password];
+    var queryParams =[email,password];
     executeQuery(query,queryParams,function(err, result){
         if(!err){
             if (result.length > 0){

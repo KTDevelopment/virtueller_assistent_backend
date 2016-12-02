@@ -26,16 +26,16 @@ var auth = function (req, res, next) {
         // * split the string at the colon
         // -> should result in an array
         auth = new Buffer(req.headers.authorization.substring(6), 'base64').toString().split(':');
-        var userName = auth[0];
+        var email = auth[0];
         var password = auth[1];
     }
-    if(auth && userName && password){
-        database.user.getByNameAndPassword(userName,password,function(err, user){
+    if(auth && email && password){
+        database.user.getByEmailAndPassword(email,password,function(err, user){
             if(!err){
                 // wenn user valide, dann stehen seine daten im result
-                if(user.user_name == userName && user.password == password){
+                if(user.email == email && user.password == password){
                     req.callingUserId = user.user_id;
-                    req.callingUserName = userName;
+                    req.callingUserName = user.user_name;
                     next()
                 }else{
                     helper.sendResponse(res,error.getUnauthorizedError());

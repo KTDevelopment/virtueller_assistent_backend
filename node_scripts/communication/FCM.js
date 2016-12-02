@@ -12,12 +12,6 @@ var fcm = {};
 
 //==================== Einstiegsfunktionen für FCM =========================================================================================================================================================================================================================================================
 
-/**
- * einstieg in fcmService cycle, für erste funktion (muss noch festgelegt werden
- * @param projectId
- * @param callingUserName
- * @param callback
- */
 
 fcm.projectActualized = function(projectId,callingUserName, callback){
     var data = {
@@ -25,19 +19,12 @@ fcm.projectActualized = function(projectId,callingUserName, callback){
         'projectId':projectId,
         'callingUser':callingUserName
     };
-    // TODO Rollback nur versenden wenn Registration Id da ist
-    database.registrationId.getListByProjectId(projectId,function(err, result){
+
+    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
         if(!err){
-            var messageData = getMessageData(data,result);
-            sendMessageToFCM(messageData,function(err,result){
-                if(!err){
-                    callback(null,result);
-                }else{
-                    callback(err,null);
-                }
-            });
+            callback(null,result)
         }else{
-            callback(err,result)
+            callback(err,null)
         }
     });
 };
@@ -48,19 +35,12 @@ fcm.projectDeleted = function (projectId, callingUserName, callback) {
         'projectId':projectId,
         'callingUser':callingUserName
     };
- // TODO Rollback nur versenden wenn Registration Id da ist
-    database.registrationId.getListByProjectId(projectId,function(err, result){
+
+    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
         if(!err){
-            var messageData = getMessageData(data,result);
-            sendMessageToFCM(messageData,function(err,result){
-                if(!err){
-                    callback(null,result);
-                }else{
-                    callback(err,null);
-                }
-            });
+            callback(null,result)
         }else{
-            callback(err,result)
+            callback(err,null)
         }
     });
 };
@@ -103,27 +83,13 @@ fcm.milestoneAdd = function (projectId, milestoneId, callingUserName,  callback)
         'callingUserName':callingUserName
     };
 
-    database.registrationId.getListByProjectId(projectId,function(err, result){
+    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
         if(!err){
-            if(result.length > 0){
-                var messageData = getMessageData(data,result);
-                sendMessageToFCM(messageData,function(err,result){
-                    if(!err){
-                        callback(null,result);
-                    }else{
-                        callback(err,null);
-                        //TODO rollback
-                    }
-                });
-            }else{
-                callback(error.getBadRequestError(),null);
-                //TODO rollback
-            }
+            callback(null,result)
         }else{
-            callback(err,result);
-            //TODO rollback
+            callback(err,null)
         }
-    })
+    });
 };
 
 fcm.milestoneActualized = function (projectId, milestoneId, callingUserName, callback) {
@@ -134,56 +100,30 @@ fcm.milestoneActualized = function (projectId, milestoneId, callingUserName, cal
         'callingUserName':callingUserName
     };
 
-    database.registrationId.getListByProjectId(projectId,function(err, result){
+    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
         if(!err){
-            if(result.length > 0){
-                var messageData = getMessageData(data,result);
-                sendMessageToFCM(messageData,function(err,result){
-                    if(!err){
-                        callback(null,result);
-                    }else{
-                        callback(err,null);
-                        //TODO multimassage bzurück geben, kein raollback, änderung bleibt trotzdem in der datenbank bestehen
-                    }
-                });
-            }else{
-                callback(error.getBadRequestError(),null);
-                //TODO rollback
-            }
+            callback(null,result)
         }else{
-            callback(err,result);
-            //TODO rollback
+            callback(err,null)
         }
-    })
+    });
 };
 
-fcm.milestoneNoteAdd = function (projectId, projectName, milestoneId, addingUserName, callback) {
+fcm.milestoneNoteAdd = function (projectId, milestoneId, addingUserName, callback) {
     var data = {
         'type': '5',
         'projectId':projectId,
-        'projectName':projectName,
         'addingUserName':addingUserName,
         'milestoneId':milestoneId
     };
 
-    database.registrationId.getListByProjectId(projectId,function(err, result){
+    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
         if(!err){
-            if(result.length > 0){
-                var messageData = getMessageData(data,result);
-                sendMessageToFCM(messageData,function(err,result){
-                    if(!err){
-                        callback(null,result);
-                    }else{
-                        callback(err,null);
-                    }
-                });
-            }else{
-                callback(error.getBadRequestError(),null);
-            }
+            callback(null,result)
         }else{
-            callback(err,result);
+            callback(err,null)
         }
-    })
+    });
 };
 
 fcm.milestoneDeleted = function (projectId, milestoneId, callingUserName, callback) {
@@ -194,31 +134,40 @@ fcm.milestoneDeleted = function (projectId, milestoneId, callingUserName, callba
         'callingUserName':callingUserName
     };
 
-    database.registrationId.getListByProjectId(projectId,function(err, result){
+    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
         if(!err){
-            if(result.length > 0){
-                var messageData = getMessageData(data,result);
-                sendMessageToFCM(messageData,function(err,result){
-                    if(!err){
-                        callback(null,result);
-                    }else{
-                        callback(err,null);
-                        //TODO multimassage bzurück geben, kein raollback, änderung bleibt trotzdem in der datenbank bestehen
-                    }
-                });
-            }else{
-                callback(error.getBadRequestError(),null);
-                //TODO rollback
-            }
+            callback(null,result)
         }else{
-            callback(err,result);
-            //TODO rollback
+            callback(err,null)
         }
-    })
-}
+    });
+};
 
 
 //==================== Funktionen für FCM =========================================================================================================================================================================================================================================================
+
+function sendMessageToAllRelatedUsers(projectId, data, callback) {
+    database.registrationId.getListByProjectId(projectId, function (err, result) {
+        if (!err) {
+            if (result.length > 0) {
+                var messageData = getMessageData(data, result);
+                sendMessageToFCM(messageData, function (err, result) {
+                    if (!err) {
+                        callback(null, result);
+                    } else {
+                        callback(err, null);
+                    }
+                });
+            } else {
+                callback(error.getBadRequestError(), null);
+            }
+        } else {
+            callback(err, null)
+        }
+    });
+}
+
+
 /**
  * bereitet einen Post an FCM vor, definiert auch was nach dem Post gesehen soll, Error-Handling etc
  * @param messageData

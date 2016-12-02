@@ -293,7 +293,7 @@ router.post('/:project_id/milestones/:milestone_id/note',function (req, res, nex
                     if(boolean){
                         database.milestone.addNote(projectId,milestoneId,note, function (err, result) {
                             if (!err) {
-                                fcm.milestoneNoteAdd(projectId,project.project_name,milestoneId,callingUserName,function(err,result){
+                                fcm.milestoneNoteAdd(projectId,milestoneId,callingUserName,function(err,result){
                                     if(!err){
                                         res.json(result);
                                     }else{
