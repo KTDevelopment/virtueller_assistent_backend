@@ -173,8 +173,7 @@ function sendMessageToAllRelatedUsers(projectId, data, callback) {
  * @param messageData
  * @param callback
  */
-function
-sendMessageToFCM(messageData, callback){
+function sendMessageToFCM(messageData, callback){
     var message = messageData['message'];
     var mitgliedArray = messageData['mitgliedArray'];
 
@@ -314,7 +313,7 @@ function performShareRollback(projectId, userId) {
 function removeTheRemovables(removableIds) {
 //nicht mehr registrierte registratiom ids löschen
     removableIds.forEach(function (entry) {
-        database.remove(entry, function (err, result) {
+        database.registrationId.remove(entry, function (err, result) {
             if (err) {
                 error.writeErrorLog("deleteRegistrationId", {
                     err: err,
@@ -333,7 +332,7 @@ function removeTheRemovables(removableIds) {
 function replaceTheReplaceables(replaceableIds) {
 //ersetzbare ids ersetzen
     replaceableIds.forEach(function (entry) {
-        database.update(entry.oldId, entry.newId, entry.mitglied_id, function (err, result) {
+        database.registrationId.update(entry.oldId, entry.newId, entry.mitglied_id, function (err, result) {
             if (err) {
                 error.writeErrorLog("updateRegistrationId", {
                     err: err,

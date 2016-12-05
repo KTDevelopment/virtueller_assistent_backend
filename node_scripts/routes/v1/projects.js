@@ -61,29 +61,35 @@ router.get('/:project_id', function(req, res, next) {
 
 router.put('/:project_id', function(req, res, next) {
     var projectId = req.params.project_id;
-    var project_values = req.body.project;
+    var projectName = req.body.project_name;
+    var projectDescription = req.body.description;
+    var projectStartTime = req.body.starttime;
+    var projectEndTime = req.body.endtime;
     var callingUserId = req.callingUserId;
     var callingUserName = req.callingUserName;
 
     userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
         if (!err){
             if(boolean){
-                if(project_values.project_name && project_values.starttime && project_values.endtime && project_values.description){
-                    database.project.update(projectId,project_values,function(err, result){
+                if(projectName && projectDescription && projectStartTime && projectEndTime){
+                    database.project.update(projectId,projectName, projectDescription, projectStartTime, projectEndTime,function(err, result){
                         if(!err){
                             fcm.projectActualized(projectId,callingUserName,function (err, result) {
+                                var answer;
                                 if(!err){
-                                    res.json(result);
+                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
+                                    helper.sendResponse(res,answer);
                                 }else{
-                                    helper.sendResponse(res,err)
+                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
+                                    helper.sendResponse(res,answer);
                                 }
                             })
                         } else {
-                            helper.sendResponse(res,err)
+                            helper.sendResponse(res,err);
                         }
                     })
                 }else{
-                    helper.sendResponse(res,error.getBadRequestError())
+                    helper.sendResponse(res,error.getBadRequestError());
                 }
             }else{
                 helper.sendResponse(res,error.getForbiddenError())
@@ -108,10 +114,13 @@ router.delete('/:project_id', function(req, res, next) {
                 database.project.remove(projectId, function (err, result) {
                     if (!err) {
                         fcm.projectDeleted(projectId,callingUserName,function (err, result) {
+                            var answer;
                             if(!err){
-                                res.json(result)
+                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
+                                helper.sendResponse(res,answer);
                             }else{
-                                helper.sendResponse(res, err)
+                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
+                                helper.sendResponse(res,answer);
                             }
                         });
                     } else {
@@ -171,13 +180,14 @@ router.post('/:project_id/share', function(req, res, next){
                         if(boolean){
                             database.project.addUser(userId,projectId,function(err, result){
                                 if(!err){
-                                    fcm.projectShared(projectId,userId,sharingUserName,function(err,result){
-                                        if(!err){
-                                            res.json(result);
-                                        }else{
-                                            helper.sendResponse(res,err);
-                                        }
-                                    })
+                                    var answer;
+                                    if(!err){
+                                        answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
+                                        helper.sendResponse(res,answer);
+                                    }else{
+                                        answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
+                                        helper.sendResponse(res,answer);
+                                    }
                                 }else{
                                     helper.sendResponse(res,err);
                                 }
@@ -225,7 +235,7 @@ router.post('/:project_id/leave',function (req, res, next) {
     });
 });
 
-//Milestone
+//Milestones
 
 router.post('/:project_id/milestones',function(req,res,next){
     var projectId = req.params.project_id;
@@ -241,10 +251,13 @@ router.post('/:project_id/milestones',function(req,res,next){
                     database.milestone.add(milestone,function(err, createdMilestone){
                         if(!err){
                             fcm.milestoneAdd(projectId,createdMilestone.milestone_id,sharingUserName,function (err, result) {
+                                var answer;
                                 if(!err){
-                                    res.json(result)
+                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
+                                    helper.sendResponse(res,answer);
                                 }else{
-                                    helper.sendResponse(res,err)
+                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
+                                    helper.sendResponse(res,answer);
                                 }
                             });
                         }else{
@@ -294,10 +307,13 @@ router.post('/:project_id/milestones/:milestone_id/note',function (req, res, nex
                         database.milestone.addNote(projectId,milestoneId,note, function (err, result) {
                             if (!err) {
                                 fcm.milestoneNoteAdd(projectId,milestoneId,callingUserName,function(err,result){
+                                    var answer;
                                     if(!err){
-                                        res.json(result);
+                                        answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
+                                        helper.sendResponse(res,answer);
                                     }else{
-                                        helper.sendResponse(res,err);
+                                        answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
+                                        helper.sendResponse(res,answer);
                                     }
                                 })
                             } else {
@@ -334,10 +350,13 @@ router.put('/:project_id/milestones/:milestone_id', function(req, res, next) {
                     database.milestone.update(projectId,milestoneId,milestoneValues, function (err, updatedMilestone) {
                         if (!err) {
                             fcm.milestoneActualized(projectId,updatedMilestone.milestone_id,sharingUserName,function (err, result) {
+                                var answer;
                                 if(!err){
-                                    res.json(result)
+                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
+                                    helper.sendResponse(res,answer);
                                 }else{
-                                    helper.sendResponse(res,err)
+                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
+                                    helper.sendResponse(res,answer);
                                 }
                             });
                         } else {
@@ -369,10 +388,13 @@ router.delete('/:project_id/milestones/:milestone_id', function(req, res, next) 
                     database.milestone.remove(projectId,milestoneId, function (err, result) {
                         if (!err) {
                             fcm.milestoneDeleted(projectId,milestoneId,sharingUserName,function (err, result) {
+                                var answer;
                                 if(!err){
-                                    res.json(result)
+                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
+                                    helper.sendResponse(res,answer);
                                 }else{
-                                    helper.sendResponse(res,err)
+                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
+                                    helper.sendResponse(res,answer);
                                 }
                             });
                         } else {
@@ -412,8 +434,6 @@ router.get('/:project_id/milestones', function(req, res, next) {
             helper.sendResponse(res,err);
         }
     });
-
-
 });
 
 router.get('/:project_id/milestones/:milestone_id', function(req, res, next) {

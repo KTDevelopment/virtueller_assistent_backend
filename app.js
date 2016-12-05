@@ -15,6 +15,7 @@ var preferences = require('./node_scripts/routes/v1/preferences');
 var users = require('./node_scripts/routes/v1/users');
 var registration_ids = require('./node_scripts/routes/v1/registration_ids');
 var projects = require('./node_scripts/routes/v1/projects');
+var milestones = require('./node_scripts/routes/v1/milestones');
 
 var auth = function (req, res, next) {
     var auth;
@@ -64,6 +65,7 @@ app.use('/api/v1/secured',auth);
 app.use('/api/v1/secured/users', users);
 app.use('/api/v1/secured/registration_ids', registration_ids);
 app.use('/api/v1/secured/projects', projects);
+app.use('/api/v1/secured/milestones', projects);
 
 // catch 404 and forward to error handler
 app.use('*',function(req, res, next) {

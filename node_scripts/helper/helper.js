@@ -45,6 +45,7 @@ helper.formateRegistrationIdArray = function (idArray) {
     }
 };
 
+
 //==================== SuccesResults inclusive Send Funktion =========================================================================================================================================================================================================================================================
 
 
@@ -131,7 +132,6 @@ helper.writeLog = function (kind,info){
     var fileName = name+datumFormatted+".txt";
     var logFilePath = kind+"_log/"+fileName;
     //var logFilePath = "/home/ftpuser/virtueller_assistent/error_log/"+fileName;
-    console.log(logFilePath);
     var logText = datetime+","+JSON.stringify(info)+"\n";
     writeToFile(logFilePath,logText)
 };
