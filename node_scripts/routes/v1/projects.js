@@ -179,7 +179,7 @@ router.get('/:project_id/milestones', function(req, res, next) {
     var callingUser = req.callingUser;
 
     if(!isNaN(projectId)){
-        projectHandler.getById(projectId,callingUser, function (err, result) {
+        projectHandler.getMilestones(projectId,callingUser, function (err, result) {
             if(!err){
                 res.json(result)
             }else{
