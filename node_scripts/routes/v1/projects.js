@@ -1,35 +1,42 @@
 var express = require('express');
-var database = require('./../../database/mySQL');
 var helper = require('./../../helper/helper');
 var error = require('./../../helper/error');
-var fcm = require('./../../communication/FCM');
-var async = require('async');
+var milestoneHandler = require('./../../route_handlers/milestone_handler');
+var projectHandler = require('./../../route_handlers/project_handler');
 var router = express.Router();
 
 
 router.get('/', function(req, res, next) {
-    var callingUserId = req.callingUserId;
-    database.project.getListByUserId(callingUserId,function(err, result){
+    var callingUser = req.callingUser;
+
+    projectHandler.getListByUser(callingUser, function (err, result) {
         if(!err){
             res.json(result)
         }else{
             helper.sendResponse(res,err)
         }
     })
+
 });
 
 router.post('/', function(req, res, next) {
-    var project = req.body.project;
+    var projectValues ={
+        project_name:req.body.project_name,
+        starttime:req.body.starttime,
+        endtime:req.body.endtime,
+        description:req.body.description
+    };
 
-    if(project && project.project_name && project.starttime && project.endtime && project.description){
-        project.fk_user_id = req.callingUserId;
-        database.project.save(project,function(err, result){
+    var callingUser = req.callingUser;
+    if(projectValues){
+        //TODO custom validation für project
+        projectHandler.save(projectValues, callingUser, function (err, result) {
             if(!err){
                 res.json(result)
-            } else {
+            }else{
                 helper.sendResponse(res,err)
             }
-        });
+        })
     }else{
         helper.sendResponse(res,error.getBadRequestError())
     }
@@ -38,103 +45,61 @@ router.post('/', function(req, res, next) {
 
 router.get('/:project_id', function(req, res, next) {
     var projectId = req.params.project_id;
-    var callingUserId = req.callingUserId;
+    var callingUser = req.callingUser;
 
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                database.project.getById(projectId,function(err, result){
-                    if(!err){
-                        res.json(result)
-                    }else{
-                        helper.sendResponse(res,err)
-                    }
-                })
+    if(!isNaN(projectId)){
+        projectHandler.getById(projectId,callingUser, function (err, result) {
+            if(!err){
+                res.json(result)
             }else{
-                helper.sendResponse(res,error.getForbiddenError())
+                helper.sendResponse(res,err)
             }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
+        })
+    }else{
+        helper.sendResponse(res,error.getBadRequestError());
+    }
 });
 
 router.put('/:project_id', function(req, res, next) {
     var projectId = req.params.project_id;
-    var projectName = req.body.project_name;
-    var projectDescription = req.body.description;
-    var projectStartTime = req.body.starttime;
-    var projectEndTime = req.body.endtime;
-    var callingUserId = req.callingUserId;
-    var callingUserName = req.callingUserName;
+    var projectValues ={
+        project_name:req.body.project_name,
+        starttime:req.body.starttime,
+        endtime:req.body.endtime,
+        description:req.body.description
+    };
+    var callingUser = req.callingUser;
 
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                if(projectName && projectDescription && projectStartTime && projectEndTime){
-                    database.project.update(projectId,projectName, projectDescription, projectStartTime, projectEndTime,function(err, result){
-                        if(!err){
-                            fcm.projectActualized(projectId,callingUserName,function (err, result) {
-                                var answer;
-                                if(!err){
-                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                    helper.sendResponse(res,answer);
-                                }else{
-                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                    helper.sendResponse(res,answer);
-                                }
-                            })
-                        } else {
-                            helper.sendResponse(res,err);
-                        }
-                    })
-                }else{
-                    helper.sendResponse(res,error.getBadRequestError());
-                }
+    if(projectValues && !isNaN(projectId)){
+        //TODO custom validation für project
+        projectHandler.update(projectValues, projectId, callingUser, function (err, result) {
+            if(!err){
+                res.json(result)
             }else{
-                helper.sendResponse(res,error.getForbiddenError())
+                helper.sendResponse(res,err)
             }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
+        })
+    }else{
+        helper.sendResponse(res,error.getBadRequestError());
+    }
+
+
 });
 
-/**
- * löscht ein Projekt mittels der Projekt_Id
- */
 router.delete('/:project_id', function(req, res, next) {
     var projectId = req.params.project_id;
-    var callingUserId = req.callingUserId;
-    var callingUserName = req.callingUserName;
-
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                database.project.remove(projectId, function (err, result) {
-                    if (!err) {
-                        fcm.projectDeleted(projectId,callingUserName,function (err, result) {
-                            var answer;
-                            if(!err){
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                helper.sendResponse(res,answer);
-                            }else{
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                helper.sendResponse(res,answer);
-                            }
-                        });
-                    } else {
-                        helper.sendResponse(res, err)
-                    }
-                })
+    var callingUser = req.callingUser;
+    if(!isNaN(projectId)){
+        projectHandler.remove(projectId, callingUser, function (err, result) {
+            if(!err){
+                res.json(result)
             }else{
-                helper.sendResponse(res,error.getForbiddenError())
+                helper.sendResponse(res,err)
             }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
-
+        })
+    }else{
+        helper.sendResponse(res,error.getBadRequestError());
+    }
 });
 
 /**
@@ -146,360 +111,84 @@ router.delete('/:project_id', function(req, res, next) {
 router.post('/:project_id/share', function(req, res, next){
     var projectId = req.params.project_id;
     var userName = req.body.user_name;
+    var callingUser = req.callingUser;
 
-    var sharingUserName = req.callingUserName;
-    var callingUserId = req.callingUserId;
-
-    function getUser(callback){
-        database.user.getByName(userName,function(err, user){
+    if(userName && !isNaN(projectId)){
+        projectHandler.share(projectId, userName, callingUser, function (err, result) {
             if(!err){
-                callback(null,user)
+                res.json(result)
             }else{
-                callback(err,null)
+                helper.sendResponse(res,err)
             }
         })
+    }else{
+        helper.sendResponse(res,error.getBadRequestError())
     }
 
-    function getProject(user, callback) {
-        database.project.getById(projectId,function (err, project) {
-            if(!err){
-                callback(null,user,project)
-            }else{
-                callback(err,null,null)
-            }
-        })
-    }
 
-    async.waterfall([getUser,getProject],function (err, user, project){
-        if (!err){
-            var userId = user.user_id;
-            var projectOwnerId = project.fk_user_id;
-            if(userId && projectOwnerId && userId != projectOwnerId){
-                userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-                    if(!err){
-                        if(boolean){
-                            database.project.addUser(userId,projectId,function(err, result){
-                                if(!err){
-                                    var answer;
-                                    if(!err){
-                                        answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                        helper.sendResponse(res,answer);
-                                    }else{
-                                        answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                        helper.sendResponse(res,answer);
-                                    }
-                                }else{
-                                    helper.sendResponse(res,err);
-                                }
-                            })
-                        }else{
-                            helper.sendResponse(res,error.getForbiddenError());
-                        }
-                    }else{
-                        helper.sendResponse(res,err);
-                    }
-                });
-            }else{
-                helper.sendResponse(res,error.getBadRequestError())
-            }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
 });
 
 router.post('/:project_id/leave',function (req, res, next) {
     var projectId = req.params.project_id;
-    var callingUserId = req.callingUserId;
+    var callingUser = req.callingUser;
 
-    userHasRelationButIsNotOwnerFromProject(callingUserId,projectId,function (err, boolean) {
-        if(!err){
-            if(boolean){
-                database.project.deleteUser(callingUserId,projectId,function(err, result){
-                    if(!err){
-                        if(!err){
-                            res.json(result);
-                        }else{
-                            helper.sendResponse(res,err);
-                        }
-                    }else{
-                        helper.sendResponse(res,err);
-                    }
-                })
+    if(!isNaN(projectId)){
+        projectHandler.leave(projectId, callingUser, function (err, result) {
+            if(!err){
+                res.json(result)
             }else{
-                helper.sendResponse(res,error.getForbiddenError());
+                helper.sendResponse(res,err)
             }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
+        })
+    }else{
+        helper.sendResponse(res,error.getBadRequestError())
+    }
+
 });
 
 //Milestones
 
 router.post('/:project_id/milestones',function(req,res,next){
     var projectId = req.params.project_id;
-    var milestone = req.body.milestone;
-    var callingUserId = req.callingUserId;
-    var sharingUserName = req.callingUserName;
+    var milestoneValues = {
+        milestone_name:req.body.milestone_name,
+        deadline:req.body.deadline,
+        description:req.body.description,
+        achieved:0,
+        note:req.body.note
+    };
+    var callingUser = req.callingUser;
 
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                if(milestone && milestone.milestone_name && milestone.deadline && milestone.description){
-                    milestone.fk_project_id = projectId;
-                    database.milestone.add(milestone,function(err, createdMilestone){
-                        if(!err){
-                            fcm.milestoneAdd(projectId,createdMilestone.milestone_id,sharingUserName,function (err, result) {
-                                var answer;
-                                if(!err){
-                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                    helper.sendResponse(res,answer);
-                                }else{
-                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                    helper.sendResponse(res,answer);
-                                }
-                            });
-                        }else{
-                            helper.sendResponse(res,err)
-                        }
-                    })
-                }else{
-                    helper.sendResponse(res,error.getBadRequestError())
-                }
+    if(milestoneValues && !isNaN(projectId)){
+        //TODO custom validation für milestoneValues
+        milestoneHandler.add(milestoneValues,projectId,callingUser,function (err, result) {
+            if(!err){
+                res.json(result)
             }else{
-                helper.sendResponse(res,error.getForbiddenError())
+                helper.sendResponse(res,err)
             }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
-
-});
-
-router.post('/:project_id/milestones/:milestone_id/note',function (req, res, next) {
-
-    var projectId = parseInt(req.params.project_id, 10);
-    var milestoneId = parseInt(req.params.milestone_id, 10);
-    var note = req.body.note;
-
-    var callingUserName = req.callingUserName;
-    var callingUserId = req.callingUserId;
-
-    function getProjekt(callback) {
-        if(!isNaN(projectId)){
-            database.project.getById(projectId,function (err, project) {
-                if(!err){
-                    callback(null,project)
-                }else{
-                    callback(err,null)
-                }
-            })
-        }
+        })
+    }else{
+        helper.sendResponse(res,error.getBadRequestError())
     }
 
-    async.waterfall([getProjekt],function (err, project){
-        if (!err){
-            // if User gehört zum Projekt
-            userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-                if(!err){
-                    if(boolean){
-                        database.milestone.addNote(projectId,milestoneId,note, function (err, result) {
-                            if (!err) {
-                                fcm.milestoneNoteAdd(projectId,milestoneId,callingUserName,function(err,result){
-                                    var answer;
-                                    if(!err){
-                                        answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                        helper.sendResponse(res,answer);
-                                    }else{
-                                        answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                        helper.sendResponse(res,answer);
-                                    }
-                                })
-                            } else {
-                                helper.sendResponse(res, err)
-                            }
-                        });
-                    }else{
-                        helper.sendResponse(res, error.getForbiddenError())
-                    }
-                }else{
-                    helper.sendResponse(res, err)
-                }
-            });
-
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
-
-
-});
-
-router.put('/:project_id/milestones/:milestone_id', function(req, res, next) {
-    var projectId = req.params.project_id;
-    var milestoneId = req.params.milestone_id;
-    var milestoneValues = req.body.milestone;
-    var callingUserId = req.callingUserId;
-    var sharingUserName = req.callingUserName;
-
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                if (!isNaN(milestoneId)) {
-                    database.milestone.update(projectId,milestoneId,milestoneValues, function (err, updatedMilestone) {
-                        if (!err) {
-                            fcm.milestoneActualized(projectId,updatedMilestone.milestone_id,sharingUserName,function (err, result) {
-                                var answer;
-                                if(!err){
-                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                    helper.sendResponse(res,answer);
-                                }else{
-                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                    helper.sendResponse(res,answer);
-                                }
-                            });
-                        } else {
-                            helper.sendResponse(res, err)
-                        }
-                    })
-                } else {
-                    helper.sendResponse(res, error.getBadRequestError())
-                }
-            }else{
-                helper.sendResponse(res,error.getForbiddenError())
-            }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
-});
-
-router.delete('/:project_id/milestones/:milestone_id', function(req, res, next) {
-    var projectId = req.params.project_id;
-    var milestoneId = req.params.milestone_id;
-    var callingUserId = req.callingUserId;
-    var sharingUserName = req.callingUserName;
-
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                if (!isNaN(milestoneId)) {
-                    database.milestone.remove(projectId,milestoneId, function (err, result) {
-                        if (!err) {
-                            fcm.milestoneDeleted(projectId,milestoneId,sharingUserName,function (err, result) {
-                                var answer;
-                                if(!err){
-                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                    helper.sendResponse(res,answer);
-                                }else{
-                                    answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                    helper.sendResponse(res,answer);
-                                }
-                            });
-                        } else {
-                            helper.sendResponse(res, err)
-                        }
-                    })
-                } else {
-                    helper.sendResponse(res, error.getBadRequestError())
-                }
-            }else{
-                helper.sendResponse(res,error.getForbiddenError())
-            }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
 });
 
 router.get('/:project_id/milestones', function(req, res, next) {
     var projectId = req.params.project_id;
-    var callingUserId = req.callingUserId;
+    var callingUser = req.callingUser;
 
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                database.milestone.getListByProjectId(projectId,function(err, result){
-                    if(!err){
-                        res.json(result)
-                    }else{
-                        helper.sendResponse(res,err)
-                    }
-                })
-            }else{
-                helper.sendResponse(res,error.getForbiddenError())
-            }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
-});
-
-router.get('/:project_id/milestones/:milestone_id', function(req, res, next) {
-    var projectId = req.params.project_id;
-    var milestoneId = req.params.milestone_id;
-    var callingUserId = req.callingUserId;
-
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                if(!isNaN(milestoneId)){
-                    database.milestone.getById(projectId,milestoneId,function(err, result){
-                        if(!err){
-                            res.json(result)
-                        }else{
-                            helper.sendResponse(res,err)
-                        }
-                    })
-                }else{
-                    helper.sendResponse(res,error.getBadRequestError())
-                }
-            }else{
-                helper.sendResponse(res,error.getForbiddenError())
-            }
-        }else{
-            helper.sendResponse(res,err);
-        }
-    });
-
-
-});
-
-function userHasAnyRelationToProject(userId, projectId, callback) {
-    if (!isNaN(projectId) && !isNaN(userId)) {
-        database.project.getAllRelatedUserIds(projectId,callback,function (err, relatedUserIds) {
+    if(!isNaN(projectId)){
+        projectHandler.getById(projectId,callingUser, function (err, result) {
             if(!err){
-                if (helper.isInArray(relatedUserIds,userId)){
-                    callback(null,true)
-                }else{
-                    callback(null,false)
-                }
+                res.json(result)
             }else{
-                callback(err,null)
+                helper.sendResponse(res,err)
             }
         })
-    } else {
-        callback(error.getBadRequestError(),null)
+    }else{
+        helper.sendResponse(res,error.getBadRequestError());
     }
-}
-
-function userHasRelationButIsNotOwnerFromProject(userId, projectId, callback) {
-    if (!isNaN(projectId) && !isNaN(userId)) {
-        database.project.getAllSharedUserIds(projectId,callback,function (err, relatedUserIds) {
-            if(!err){
-                if (helper.isInArray(relatedUserIds,userId)){
-                    callback(null,true)
-                }else{
-                    callback(null,false)
-                }
-            }else{
-                callback(err,null)
-            }
-        })
-    } else {
-        callback(error.getBadRequestError(),null)
-    }
-}
+});
 
 module.exports = router;

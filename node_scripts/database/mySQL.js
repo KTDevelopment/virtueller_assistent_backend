@@ -127,12 +127,12 @@ project.remove = function (projectId, callback){
     });
 };
 
-project.update = function (projectId, projectName, projectDescription, projectStartTime, projectEndTime, callback){
+project.update = function (projectId, projectValues, callback){
     var newProject = {};
-    newProject[COL_NAME_PROJECT_NAME]=projectName;
-    newProject[COL_NAME_PROJECT_STARTTIME]=projectStartTime;
-    newProject[COL_NAME_PROJECT_ENDTIME]=projectEndTime;
-    newProject[COL_NAME_PROJECT_DESCRIPTION]=projectDescription;
+    newProject[COL_NAME_PROJECT_NAME]=projectValues.project_name;
+    newProject[COL_NAME_PROJECT_STARTTIME]=projectValues.starttime;
+    newProject[COL_NAME_PROJECT_ENDTIME]=projectValues.endtime;
+    newProject[COL_NAME_PROJECT_DESCRIPTION]=projectValues.description;
     var query =
         "UPDATE "+
         TABLE_NAME_PROJECT+" " +
@@ -239,7 +239,7 @@ project.getByMilestoneId = function (milestoneId, callback) {
     var query =
         "SELECT * FROM " +
         TABLE_NAME_PROJECT + " " +
-        "LEFT JOIN "+ TABLE_NAME_MILESTONE + " ON " + COL_NAME_MILESTONE_FK_PROJECT + " = "+ COL_NAME_PROJECT_ID +
+        "LEFT JOIN "+ TABLE_NAME_MILESTONE + " ON " + COL_NAME_MILESTONE_FK_PROJECT + " = "+ COL_NAME_PROJECT_ID + " " +
         "WHERE " +
         COL_NAME_MILESTONE_ID+" = ?" ;
     var queryParams =[milestoneId];

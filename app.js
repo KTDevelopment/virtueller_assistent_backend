@@ -35,8 +35,10 @@ var auth = function (req, res, next) {
             if(!err){
                 // wenn user valide, dann stehen seine daten im result
                 if(user.email == email && user.password == password){
-                    req.callingUserId = user.user_id;
-                    req.callingUserName = user.user_name;
+                    req.callingUser = {
+                        user_id:user.user_id,
+                        user_name:user.user_name
+                    };
                     next()
                 }else{
                     helper.sendResponse(res,error.getUnauthorizedError());
@@ -65,12 +67,12 @@ app.use('/api/v1/secured',auth);
 app.use('/api/v1/secured/users', users);
 app.use('/api/v1/secured/registration_ids', registration_ids);
 app.use('/api/v1/secured/projects', projects);
-app.use('/api/v1/secured/milestones', projects);
+app.use('/api/v1/secured/milestones', milestones);
 
 // catch 404 and forward to error handler
 app.use('*',function(req, res, next) {
-  var err = error.getNotFoundError();
-  next(err);
+
+  helper.sendResponse(res,error.getNotFoundError());
 });
 
 // error handlers

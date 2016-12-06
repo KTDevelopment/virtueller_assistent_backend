@@ -15,9 +15,9 @@ var fcm = {};
 
 fcm.projectActualized = function(projectId,callingUserName, callback){
     var data = {
-        'type': '0',
+        'type': '1001',
         'projectId':projectId,
-        'callingUser':callingUserName
+        'triggeringUserName':callingUserName
     };
 
     sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
@@ -31,9 +31,9 @@ fcm.projectActualized = function(projectId,callingUserName, callback){
 
 fcm.projectDeleted = function (projectId, callingUserName, callback) {
     var data = {
-        'type': '1',
+        'type': '1002',
         'projectId':projectId,
-        'callingUser':callingUserName
+        'triggeringUserName':callingUserName
     };
 
     sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
@@ -45,14 +45,14 @@ fcm.projectDeleted = function (projectId, callingUserName, callback) {
     });
 };
 
-fcm.projectShared = function(projectId, userId, sharingUserName, callback){
+fcm.projectShared = function(projectId, collaboratorId, sharingUserName, callback){
     var data = {
-        'type': '2',
+        'type': '1010',
         'projectId':projectId,
-        'sharingUserName':sharingUserName
+        'triggeringUserName':sharingUserName
     };
 
-    database.registrationId.getListByUserId(userId,function(err, result){
+    database.registrationId.getListByUserId(collaboratorId,function(err, result){
         if(!err){
             if(result.length > 0){
                 var messageData = getMessageData(data,result);
@@ -61,26 +61,26 @@ fcm.projectShared = function(projectId, userId, sharingUserName, callback){
                         callback(null,result);
                     }else{
                         callback(err,null);
-                        performShareRollback(projectId,userId);
+                        performShareRollback(projectId,collaboratorId);
                     }
                 });
             }else{
                 callback(error.getBadRequestError(),null);
-                performShareRollback(projectId,userId);
+                performShareRollback(projectId,collaboratorId);
             }
         }else{
             callback(err,result);
-            performShareRollback(projectId,userId);
+            performShareRollback(projectId,collaboratorId);
         }
     })
 };
 
 fcm.milestoneAdd = function (projectId, milestoneId, callingUserName,  callback) {
     var data = {
-        'type': '3',
+        'type': '2000',
         'projectId':projectId,
         'milestoneId':milestoneId,
-        'callingUserName':callingUserName
+        'triggeringUserName':callingUserName
     };
 
     sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
@@ -94,27 +94,10 @@ fcm.milestoneAdd = function (projectId, milestoneId, callingUserName,  callback)
 
 fcm.milestoneActualized = function (projectId, milestoneId, callingUserName, callback) {
     var data = {
-        'type': '4',
+        'type': '2001',
         'projectId':projectId,
         'milestoneId':milestoneId,
-        'callingUserName':callingUserName
-    };
-
-    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
-        if(!err){
-            callback(null,result)
-        }else{
-            callback(err,null)
-        }
-    });
-};
-
-fcm.milestoneNoteAdd = function (projectId, milestoneId, addingUserName, callback) {
-    var data = {
-        'type': '5',
-        'projectId':projectId,
-        'addingUserName':addingUserName,
-        'milestoneId':milestoneId
+        'triggeringUserName':callingUserName
     };
 
     sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
@@ -128,10 +111,44 @@ fcm.milestoneNoteAdd = function (projectId, milestoneId, addingUserName, callbac
 
 fcm.milestoneDeleted = function (projectId, milestoneId, callingUserName, callback) {
     var data = {
-        'type': '6',
+        'type': '2002',
         'projectId':projectId,
         'milestoneId':milestoneId,
-        'callingUserName':callingUserName
+        'triggeringUserName':callingUserName
+    };
+
+    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
+        if(!err){
+            callback(null,result)
+        }else{
+            callback(err,null)
+        }
+    });
+};
+
+fcm.milestoneNoteAdd = function (projectId, milestoneId, addingUserName, callback) {
+    var data = {
+        'type': '2011',
+        'projectId':projectId,
+        'triggeringUserName':addingUserName,
+        'milestoneId':milestoneId
+    };
+
+    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
+        if(!err){
+            callback(null,result)
+        }else{
+            callback(err,null)
+        }
+    });
+};
+
+fcm.milestoneAchieved = function (projectId, milestoneId, callingUserName, callback) {
+    var data = {
+        'type': '2020',
+        'projectId':projectId,
+        'milestoneId':milestoneId,
+        'triggeringUserName':callingUserName
     };
 
     sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
@@ -149,8 +166,10 @@ fcm.milestoneDeleted = function (projectId, milestoneId, callingUserName, callba
 function sendMessageToAllRelatedUsers(projectId, data, callback) {
     database.registrationId.getListByProjectId(projectId, function (err, result) {
         if (!err) {
+            console.log("ids: ",result);
             if (result.length > 0) {
                 var messageData = getMessageData(data, result);
+                console.log("messagedata:", messageData);
                 sendMessageToFCM(messageData, function (err, result) {
                     if (!err) {
                         callback(null, result);
@@ -180,16 +199,22 @@ function sendMessageToFCM(messageData, callback){
     var sender = new fcmService(config.fcm.api_key);
     sender.send(message, function (err, response) {
         if(!err) {
+            console.log("kein fcm error: ", response);
             callback(null,response);
         } else {
+            console.log("fcm error - error: ", err);
+            console.log("fcm error - response: ", response);
             try {
                 var errorObject = JSON.parse(err);
+                //TODO warum wird der gefundene error nicht evaluiert
                 evaluatePartitialOrCompleteError(errorObject,mitgliedArray,function(allFailed){
                     if(allFailed){
                         callback(error.getFCMRequestFailedError(),null);
                         error.writeErrorLog("sendMessageToFCM",errorObject);
+                        console.log("alle failed")
                     }else{
-                        callback(null,response)
+                        callback(null,response);
+                        console.log("nicht alle failed")
                     }
                 });
             }catch(e){
@@ -228,29 +253,26 @@ function getMessageData(data,mitgliedArray) {
  * @param callback
  */
 function evaluatePartitialOrCompleteError(result, regIdArray, callback) {
-    var removableIds=[];
-    var retryIds=[];
-    var replaceableIds=[];
-    var fcmShallGoToPlaner=false;
-    var allFailedIds=[];
 
-    evaluateResultForPartitialOrCompleteError(result,regIdArray,function(removeableRegistrationIds, retryRegistrationIds, replaceableRegistrationIds, failedRegistrationIds, shallGoToPlaner){
-        removableIds = removeableRegistrationIds;
-        retryIds = retryRegistrationIds;
-        replaceableIds = replaceableRegistrationIds;
-        fcmShallGoToPlaner = shallGoToPlaner;
-        allFailedIds = failedRegistrationIds;
+
+    evaluateResultForPartitialOrCompleteError(result,regIdArray,function(removableIds, retryIds, replaceableIds, mismatchIds, allFailedIds, fcmShallGoToPlaner){
+
+        callback(isAllMessagesFailed());
+
+        removeTheRemovables(removableIds);
+
+        replaceTheReplaceables(replaceableIds);
+
+        // TODO retry ids ?
+        // todo mismatch ids vielleicht doch zu den removeables zählen ?
+
+        function isAllMessagesFailed() {
+            return allFailedIds.length === regIdArray.length;
+        }
+
     });
 
-    callback(isAllMessagesFailed());
 
-    removeTheRemovables(removableIds);
-
-    replaceTheReplaceables(replaceableIds);
-
-    function isAllMessagesFailed() {
-        return allFailedIds.length === regIdArray.length;
-    }
 }
 
 /**
@@ -261,9 +283,10 @@ function evaluatePartitialOrCompleteError(result, regIdArray, callback) {
  */
 function evaluateResultForPartitialOrCompleteError(result, regIdArray, callback) {
 
-    var removableRegistrationIds=[];
-    var retryRegistrationIds=[];
-    var replaceableRegistrationIds=[];
+    var removableRegistrationIds = [];
+    var retryRegistrationIds = [];
+    var replaceableRegistrationIds = [];
+    var mismatchRegistrationIds = [];
 
     /** @namespace entry.registration_id */
     /** @namespace entry.fk_mitglied_id */
@@ -273,17 +296,21 @@ function evaluateResultForPartitialOrCompleteError(result, regIdArray, callback)
         if (currentFcmResult.error && (currentFcmResult.error==="NotRegistered" || currentFcmResult.error === "InvalidRegistration")){
             removableRegistrationIds.push(entry.registration_id);
         }
-        if (currentFcmResult.error && (currentFcmResult.error==="Unavailable" || currentFcmResult.error === "InternalServerError")){// todo nächster Release vielleicht retry bei diesen einbauen, wobei dann auch wieder rollback angepasst werden muss
+        if (currentFcmResult.error && (currentFcmResult.error==="Unavailable" || currentFcmResult.error === "InternalServerError")){
             retryRegistrationIds.push(entry.registration_id);
+        }
+        if (currentFcmResult.error && currentFcmResult.error==="MismatchSenderId"){
+            mismatchRegistrationIds.push(entry.registration_id)
         }
         if (currentFcmResult.registration_id){
             replaceableRegistrationIds.push({oldId:entry.registration_id,newId:currentFcmResult.registration_id,mitglied_id:entry.fk_mitglied_id});
         }
+
     });
 
-    var failedRegistrationIds = removableRegistrationIds.concat(retryRegistrationIds);
+    var failedRegistrationIds = removableRegistrationIds.concat(retryRegistrationIds.concat(mismatchRegistrationIds));
 
-    callback(removableRegistrationIds,retryRegistrationIds,replaceableRegistrationIds,failedRegistrationIds);
+    callback(removableRegistrationIds,retryRegistrationIds,replaceableRegistrationIds,mismatchRegistrationIds,failedRegistrationIds);
 }
 
 //==================== Funktionen nach FCM (rollback, alte registrationIds erneuen, invalide registrationIds löschen) =========================================================================================================================================================================================================================================================

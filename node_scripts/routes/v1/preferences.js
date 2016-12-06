@@ -1,5 +1,5 @@
 var express = require('express');
-var database = require('./../../database/mySQL');
+var preferencesHandler = require('./../../route_handlers/preferences_handler');
 var helper = require('./../../helper/helper');
 var error = require('./../../helper/error');
 var router = express.Router();
@@ -8,16 +8,10 @@ router.post('/login',function(req, res, next){
     var email = req.body.email;
     var password = req.body.password;
     if(email && password){
-        database.user.getByEmailAndPassword(email,password,function(err, user){
+        preferencesHandler.login(email,password,function (err, result) {
             if(!err){
-                // wenn user valide, dann stehen seine daten im result
-                if(user.user_name && user.password){
-                    delete user.password;
-                    res.json(user)
-                }else{
-                    helper.sendResponse(res,error.getBadRequestError())
-                }
-            }else{
+                res.json(result)
+            } else {
                 helper.sendResponse(res,err)
             }
         })
@@ -32,7 +26,7 @@ router.post('/register', function(req, res, next) {
     var password = req.body.password;
     var email = req.body.email;
     if(userName && password && email){
-        database.user.save(userName,password,email,function(err, result){
+        preferencesHandler.register(userName, password, email,function (err, result) {
             if(!err){
                 res.json(result)
             } else {
@@ -40,7 +34,7 @@ router.post('/register', function(req, res, next) {
             }
         })
     }else{
-        helper.sendResponse(res,error.getBadRequestError())
+        helper.sendResponse(res,error.getBadRequestError());
     }
 });
 
