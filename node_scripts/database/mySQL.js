@@ -576,18 +576,24 @@ registrationId.getListByUserId = function (userId, callback){
 
 registrationId.getListByProjectId = function (projectId, callback){
     var query = "SELECT " +
-        COL_NAME_DEVICE_REGISTRATION_ID+" " +
+        COL_NAME_DEVICE_REGISTRATION_ID+" as registration_id " +
         "FROM " +
         TABLE_NAME_DEVICE+" " +
         "LEFT JOIN " +
         TABLE_NAME_SHARED+" ON " +
-        COL_NAME_DEVICE_FK_USER_ID+"="+COL_NAME_SHARED_FK_USER_ID+" " +
+        COL_NAME_DEVICE_FK_USER_ID+" = "+COL_NAME_SHARED_FK_USER_ID+" " +
+        "Where " +
+        COL_NAME_SHARED_FK_PROJECT_ID+" = ? " +
+        "UNION " +
+        "SELECT " +
+        COL_NAME_DEVICE_REGISTRATION_ID+" as registration_id " +
+        "FROM " +
+        TABLE_NAME_DEVICE+" " +
         "LEFT JOIN " +
         TABLE_NAME_PROJECT+" ON " +
-        COL_NAME_DEVICE_FK_USER_ID+"="+COL_NAME_PROJECT_FK_USER_ID+" " +
+        COL_NAME_DEVICE_FK_USER_ID+" = "+COL_NAME_PROJECT_FK_USER_ID+" " +
         "Where " +
-        COL_NAME_SHARED_FK_PROJECT_ID+"=? OR "+COL_NAME_PROJECT_ID+"=? " +
-        "GROUP BY "+ COL_NAME_SHARED_FK_USER_ID;
+        COL_NAME_PROJECT_ID+" = ? ";
     var queryParams = [projectId,projectId];
     executeQuery(query,queryParams,callback);
 };
@@ -682,12 +688,15 @@ function executeQuery(query, queryParams, callback){
                 }else{
                     switch (err.errno){
                         case 1062: // duplicate entry of unique key
+                            error.writeErrorLog("executeObjectQuery",{error:err, query:query, queryParams:queryParams});
                             callback(error.getBadRequestError(),null);
                             break;
                         case 1452: // now referenced row for FK
+                            error.writeErrorLog("executeObjectQuery",{error:err, query:query, queryParams:queryParams});
                             callback(error.getBadRequestError(),null);
                             break;
                         case 1054: // unknown column
+                            error.writeErrorLog("executeObjectQuery",{error:err, query:query, queryParams:queryParams});
                             callback(error.getBadRequestError(),null);
                             break;
                         default:

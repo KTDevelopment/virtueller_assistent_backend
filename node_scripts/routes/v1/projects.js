@@ -163,7 +163,7 @@ router.post('/:project_id/leave',function (req, res, next) {
 //Milestones
 
 router.post('/:project_id/milestones',function(req,res,next){
-    var projectId = req.params.project_id;
+    var projectId = parseInt(req.params.project_id,10);
     var milestoneValues = {
         milestone_name:req.body.milestone_name,
         deadline:req.body.deadline,
