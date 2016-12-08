@@ -64,12 +64,12 @@ helper.formatUserIdArray = function (idArray) {
 //==================== SuccesResults inclusive Send Funktion =========================================================================================================================================================================================================================================================
 
 
-helper.getFCMSuccessJSON = function (fcmResult) {
+helper.getFCMSuccessJSON = function () {
     return {
         code:200,
         body:{
             status: "success",
-            results: fcmResult
+            message: "Die Nachricht konnte erfolgreich versendet werden."
         }
     };
 };

@@ -247,8 +247,7 @@ function sendMessageToFCM(messageData, callback){
     var sender = new fcmService(config.fcm.api_key);
     sender.send(message, function (err, response) {
         if(!err) {
-            var jsonObject = JSON.parse(response);
-            callback(null,jsonObject);
+            callback(null,helper.getFCMSuccessJSON());
         } else {
             try {
                 var errorObject = JSON.parse(err);
