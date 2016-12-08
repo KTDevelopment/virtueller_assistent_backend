@@ -44,14 +44,14 @@ fcm.projectActualized = function(projectId,callingUserName, callback){
     });
 };
 
-fcm.projectDeleted = function (projectId, callingUserName, callback) {
+fcm.projectDeleted = function (projectId, userList, callingUserName, callback) {
     var data = {
         'type': '1002',
         'projectId':projectId,
         'triggeringUserName':callingUserName
     };
 
-    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
+    sendMessageToUserList(userList, data, function (err, result) {
         if(!err){
             callback(null,result)
         }else{
@@ -202,6 +202,18 @@ function sendMessageToUser(userId, data, callback) {
         }
     })
 }
+
+function sendMessageToUserList(userList, data, callback) {
+    var messageData = getMessageData(data, userList);
+    sendMessageToFCM(messageData, function (err, result) {
+        if (!err) {
+            callback(null, result);
+        } else {
+            callback(err, null);
+        }
+    });
+}
+
 
 function sendMessageToAllRelatedUsers(projectId, data, callback) {
     database.registrationId.getListByProjectId(projectId, function (err, result) {

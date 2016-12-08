@@ -82,26 +82,43 @@ projectHandler.update = function (projectValues, projectId, callingUser, callbac
 projectHandler.remove = function (projectId, callingUser, callback) {
     var callingUserId = callingUser.user_id;
     var callingUserName = callingUser.user_name;
-    userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
-        if (!err){
-            if(boolean){
-                database.project.remove(projectId, function (err, result) {
-                    if (!err) {
-                        callback(null,result);
-                        fcm.projectDeleted(projectId,callingUserName,function (err, result) {
-                            // no one to notifie about
-                        });
-                    } else {
-                        callback(err,null)
-                    }
-                })
+
+    function getRelatedUserList(callback) {
+        database.registrationId.getListByProjectId(projectId,function (err, result) {
+            if(!err){
+                callback(null, result)
             }else{
-                callback(error.getForbiddenError(),null);
+                callback(err,null)
             }
+        })
+    }
+
+    async.waterfall([getRelatedUserList],function (err, userList) {
+        if(!err){
+            userHasAnyRelationToProject(callingUserId,projectId,function (err, boolean) {
+                if (!err){
+                    if(boolean){
+                        database.project.remove(projectId, function (err, result) {
+                            if (!err) {
+                                callback(null,result);
+                                fcm.projectDeleted(projectId, userList, callingUserName,function (err, result) {});// no one to notifie about
+                            } else {
+                                callback(err,null)
+                            }
+                        })
+                    }else{
+                        callback(error.getForbiddenError(),null);
+                    }
+                }else{
+                    callback(err,null)
+                }
+            });
         }else{
             callback(err,null)
         }
-    });
+
+    })
+
 };
 
 projectHandler.invite = function (projectId, collaboratorName, callingUser, callback) {
