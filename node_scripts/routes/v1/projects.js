@@ -8,7 +8,6 @@ var router = express.Router();
 
 router.get('/', function(req, res, next) {
     var callingUser = req.callingUser;
-
     projectHandler.getListByUser(callingUser, function (err, result) {
         if(!err){
             res.json(result)
@@ -20,7 +19,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/', function(req, res, next) {
-    var projectValues ={
+    var projectValues = {
         project_name:req.body.project_name,
         starttime:req.body.starttime,
         endtime:req.body.endtime,
@@ -28,8 +27,7 @@ router.post('/', function(req, res, next) {
     };
 
     var callingUser = req.callingUser;
-    if(projectValues){
-        //TODO custom validation für project
+    if(projectHandler.validateProjectValues(projectValues)){
         projectHandler.save(projectValues, callingUser, function (err, result) {
             if(!err){
                 res.json(result)
@@ -70,8 +68,7 @@ router.put('/:project_id', function(req, res, next) {
     };
     var callingUser = req.callingUser;
 
-    if(projectValues && !isNaN(projectId)){
-        //TODO custom validation für project
+    if(projectHandler.validateProjectValues(projectValues) && !isNaN(projectId)){
         projectHandler.update(projectValues, projectId, callingUser, function (err, result) {
             if(!err){
                 res.json(result)
@@ -108,13 +105,13 @@ router.delete('/:project_id', function(req, res, next) {
  *          neuer User != Owner des Projektes
  *          neuer User hat Registration_Id
  */
-router.post('/:project_id/share', function(req, res, next){
+router.post('/:project_id/invite', function(req, res, next){
     var projectId = req.params.project_id;
     var userName = req.body.user_name;
     var callingUser = req.callingUser;
 
     if(userName && !isNaN(projectId)){
-        projectHandler.share(projectId, userName, callingUser, function (err, result) {
+        projectHandler.invite(projectId, userName, callingUser, function (err, result) {
             if(!err){
                 res.json(result)
             }else{
@@ -159,8 +156,7 @@ router.post('/:project_id/milestones',function(req,res,next){
     };
     var callingUser = req.callingUser;
 
-    if(milestoneValues && !isNaN(projectId)){
-        //TODO custom validation für milestoneValues
+    if(milestoneHandler.validateMilestoneValues(milestoneValues) && !isNaN(projectId)){
         milestoneHandler.add(milestoneValues,projectId,callingUser,function (err, result) {
             if(!err){
                 res.json(result)

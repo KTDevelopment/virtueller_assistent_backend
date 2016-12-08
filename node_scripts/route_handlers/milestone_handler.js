@@ -35,15 +35,9 @@ milestoneHandler.remove = function (milestoneId, callingUser, callback){
             if(boolean){
                 database.milestone.remove(milestoneId, function (err, result) {
                     if (!err) {
+                        callback(null,result);
                         fcm.milestoneDeleted(projectId,milestoneId,sharingUserName,function (err, result) {
-                            var answer;
-                            if(!err){
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                callback(null,answer);
-                            }else{
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                callback(null,answer);
-                            }
+                            // no one to notifie about
                         });
                     } else {
                         callback(err,null);
@@ -66,15 +60,9 @@ milestoneHandler.update = function (milestoneId, milestoneValues,  callingUser, 
             if(boolean){
                 database.milestone.update(milestoneId, milestoneValues, function (err, updatedMilestone) {
                     if (!err) {
+                        callback(null,updatedMilestone);
                         fcm.milestoneActualized(projectId,updatedMilestone.milestone_id,sharingUserName,function (err, result) {
-                            var answer;
-                            if(!err){
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                callback(null,answer);
-                            }else{
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                callback(null,answer);
-                            }
+                            // no one to notifie about
                         });
                     } else {
                         callback(err,null);
@@ -97,15 +85,9 @@ milestoneHandler.addNote = function (milestoneId, note, callingUser, callback) {
             if(boolean){
                 database.milestone.addNote(milestoneId, note, function (err, result) {
                     if (!err) {
+                        callback(null,result);
                         fcm.milestoneNoteAdd(projectId,milestoneId,callingUserName,function(err,result){
-                            var answer;
-                            if(!err){
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                callback(null,answer);
-                            }else{
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                callback(null,answer);
-                            }
+                            // no one to notifie about
                         })
                     } else {
                         callback(err,null);
@@ -128,15 +110,9 @@ milestoneHandler.achieve = function (milestoneId, achieve, callingUser, callback
             if(boolean){
                 database.milestone.achieve(milestoneId, achieve, function (err, result) {
                     if (!err) {
+                        callback(null,result);
                         fcm.milestoneAchieved(projectId,milestoneId,callingUserName,function (err, result) {
-                            var answer;
-                            if(!err){
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                callback(null,answer);
-                            }else{
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                callback(null,answer);
-                            }
+                            // no one to notifie about
                         });
                     } else {
                         callback(err,null);
@@ -160,15 +136,9 @@ milestoneHandler.add = function (milestoneValues, projectId, callingUser, callba
                 milestoneValues.fk_project_id = projectId;
                 database.milestone.add(milestoneValues,function(err, createdMilestone){
                     if(!err){
+                        callback(null,createdMilestone);
                         fcm.milestoneAdd(projectId,createdMilestone.milestone_id,callingUserName,function (err, result) {
-                            var answer;
-                            if(!err){
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),result]);
-                                callback(null,answer);
-                            }else{
-                                answer = helper.getMultiStatusResponse([helper.getRestSuccessResponse(),err]);
-                                callback(null,answer);
-                            }
+                            // no one to notifie about
                         });
                     }else{
                         callback(err,null);
@@ -231,5 +201,25 @@ function userHasAnyRelationToProject(userId, projectId, callback) {
         }
     })
 }
+
+milestoneHandler.validateMilestoneValues = function (milestoneValues) {
+    var name = milestoneValues.milestone_name;
+    var deadline = milestoneValues.deadline;
+    var description = milestoneValues.description;
+    var note = milestoneValues.note;
+    if( name && deadline && description){
+        if(typeof name == "string" && typeof deadline == "number" && typeof description == "string"){
+            if(note){
+                return typeof note == "string";
+            }else{
+                return true;
+            }
+        }else{
+            return false;
+        }
+    }else{
+        return false;
+    }
+};
 
 module.exports = milestoneHandler;

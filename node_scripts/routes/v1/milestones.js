@@ -55,9 +55,7 @@ router.put('/:milestone_id', function(req, res, next) {
     };
 
     var callingUser = req.callingUser;
-
-    if(milestoneValues && !isNaN(milestoneId)){
-        //TODO custom validation für milestoneValues
+    if(milestoneHandler.validateMilestoneValues(milestoneValues) && !isNaN(milestoneId)){
         milestoneHandler.update(milestoneId,milestoneValues,callingUser,function (err, result) {
             if(!err){
                 res.json(result)

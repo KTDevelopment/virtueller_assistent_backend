@@ -611,23 +611,6 @@ registrationId.update = function (oldRegistrationId, newRegistrationId, mitglied
     var queryparams=[newRegistrationId,oldRegistrationId,mitglied_id];
     executeQuery(query,queryparams,callback);
 };
-//---------------- Rollback -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-
-/**
- * setzt ein Mitglied
- * @param projectId
- * @param userId
- * @param callback
- */
-function rollback(projectId,userId,callback){
-    var query="DELETE FROM " +
-        TABLE_NAME_SHARED+" " +
-        "WHERE "+
-        COL_NAME_SHARED_FK_PROJECT_ID+"=? AND "+
-        COL_NAME_SHARED_FK_USER_ID+"=?";
-    var queryparams=[projectId,userId];
-    executeQuery(query,queryparams,callback)
-}
 
 //==================================================================================== Standard Array und Object Getter ================================================================================================================================================================
 

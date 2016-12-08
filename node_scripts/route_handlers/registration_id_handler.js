@@ -1,6 +1,5 @@
 var database = require('./../database/mySQL');
 var helper = require('./../helper/helper');
-var error = require('./../helper/error');
 var async = require('async');
 
 var registrationIdHandler={};
