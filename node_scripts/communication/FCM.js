@@ -214,7 +214,6 @@ function sendMessageToUserList(userList, data, callback) {
     });
 }
 
-
 function sendMessageToAllRelatedUsers(projectId, data, callback) {
     database.registrationId.getListByProjectId(projectId, function (err, result) {
         if (!err) {
@@ -236,7 +235,6 @@ function sendMessageToAllRelatedUsers(projectId, data, callback) {
     });
 }
 
-
 /**
  * bereitet einen Post an FCM vor, definiert auch was nach dem Post gesehen soll, Error-Handling etc
  * @param messageData
@@ -249,7 +247,8 @@ function sendMessageToFCM(messageData, callback){
     var sender = new fcmService(config.fcm.api_key);
     sender.send(message, function (err, response) {
         if(!err) {
-            callback(null,response);
+            var jsonObject = JSON.parse(response);
+            callback(null,jsonObject);
         } else {
             try {
                 var errorObject = JSON.parse(err);
