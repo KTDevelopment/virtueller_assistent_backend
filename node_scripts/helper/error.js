@@ -6,8 +6,6 @@ var error = {};
 
 //==================== Error Getter =========================================================================================================================================================================================================================================================
 
-//TODO errors anpassen, sollten status:statuscode message:errormessage haben
-
 error.getBadRequestError = function (){
     return {"code": 400, body:{"status": "Bad Request"}};
 };

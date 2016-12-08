@@ -74,35 +74,6 @@ helper.getFCMSuccessJSON = function () {
     };
 };
 
-helper.getMultiStatusResponse = function (responseArray){
-    return {
-        code: 207,
-        body:{
-            results: responseArray
-        }
-
-    }
-};
-
-helper.getRestSuccessResponse = function (){
-    return{
-        code:200,
-        body:{
-            status: "success",
-            message: "Die Änderung in der Datenbank war erfolgreich"
-        }
-    }
-};
-
-helper.getRollbackNotification = function (){
-    return {
-        "code": 910,
-        body:{
-            "status": "Die Änderung in der Datenbank wurde zurückgesetzt"
-        }
-    }
-};
-
 helper.getNoContentResponse = function (){
     return {
         "code": 200,
@@ -146,6 +117,7 @@ helper.writeLog = function (kind,info){
     var datumFormatted = datetime.getDate()+"_"+(datetime.getMonth()+1)+"_"+datetime.getFullYear();
     var fileName = name+datumFormatted+".txt";
     var logFilePath = kind+"_log/"+fileName;
+    //TODO rausfinden warum pfad nicht klappt
     //var logFilePath = "/home/ftpuser/virtueller_assistent/error_log/"+fileName;
     var logText = datetime+","+JSON.stringify(info)+"\n";
     writeToFile(logFilePath,logText)
