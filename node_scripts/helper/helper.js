@@ -35,10 +35,25 @@ helper.mergeProperties = function (obj1,obj2){
  * @param idArray
  * @returns {*}
  */
-helper.formateRegistrationIdArray = function (idArray) {
+helper.formatRegistrationIdArray = function (idArray) {
     if (idArray.length > 0){
         return idArray.map(function (row) {
             return row.registration_id;
+        });
+    }else{
+        return idArray;
+    }
+};
+
+/**
+ * formatiert ein Array in dem user_ids stehen so, das nurnoch die ids drin sind, keine bezeichnungen etc
+ * @param idArray
+ * @returns {*}
+ */
+helper.formatUserIdArray = function (idArray) {
+    if (idArray.length > 0){
+        return idArray.map(function (row) {
+            return row.user_id;
         });
     }else{
         return idArray;

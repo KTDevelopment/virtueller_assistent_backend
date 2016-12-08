@@ -55,9 +55,12 @@ milestoneHandler.remove = function (milestoneId, callingUser, callback){
 milestoneHandler.update = function (milestoneId, milestoneValues,  callingUser, callback) {
     var callingUserId = callingUser.user_id;
     var sharingUserName = callingUser.user_name;
+
     userHasAnyRelationToMilestone(callingUserId, milestoneId,function (err, boolean, projectId) {
         if (!err){
             if(boolean){
+                console.log(boolean);
+                console.log(projectId);
                 database.milestone.update(milestoneId, milestoneValues, function (err, updatedMilestone) {
                     if (!err) {
                         callback(null,updatedMilestone);
@@ -168,9 +171,10 @@ function userHasAnyRelationToMilestone(userId, milestoneId, callback) {
     async.waterfall([getProject],function (err, project){
         if (!err){
             if (project) {
-                database.project.getAllRelatedUserIds(project.project_id,callback,function (err, relatedUserIds) {
+                database.project.getAllRelatedUserIds(project.project_id,function (err, relatedUserIds) {
                     if(!err){
-                        if (helper.isInArray(relatedUserIds,userId)){
+                        var formattedArray = helper.formatUserIdArray(relatedUserIds);
+                        if (helper.isInArray(formattedArray,userId)){
                             callback(null,true,project.project_id)
                         }else{
                             callback(null,false)
@@ -189,9 +193,10 @@ function userHasAnyRelationToMilestone(userId, milestoneId, callback) {
 }
 
 function userHasAnyRelationToProject(userId, projectId, callback) {
-    database.project.getAllRelatedUserIds(projectId,callback,function (err, relatedUserIds) {
+    database.project.getAllRelatedUserIds(projectId,function (err, relatedUserIds) {
         if(!err){
-            if (helper.isInArray(relatedUserIds,userId)){
+            var formattedArray = helper.formatUserIdArray(relatedUserIds);
+            if (helper.isInArray(formattedArray,userId)){
                 callback(null,true)
             }else{
                 callback(null,false)

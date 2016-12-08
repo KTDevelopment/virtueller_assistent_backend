@@ -249,9 +249,10 @@ projectHandler.getMilestones = function (projectId, callingUser, callback) {
 };
 
 function userHasAnyRelationToProject(userId, projectId, callback) {
-    database.project.getAllRelatedUserIds(projectId,callback,function (err, relatedUserIds) {
+    database.project.getAllRelatedUserIds(projectId,function (err, relatedUserIds) {
         if(!err){
-            if (helper.isInArray(relatedUserIds,userId)){
+            var formattedArray = helper.formatUserIdArray(relatedUserIds);
+            if (helper.isInArray(formattedArray,userId)){
                 callback(null,true)
             }else{
                 callback(null,false)
@@ -263,9 +264,10 @@ function userHasAnyRelationToProject(userId, projectId, callback) {
 }
 
 function userHasRelationButIsNotOwnerFromProject(userId, projectId, callback) {
-    database.project.getAllSharedUserIds(projectId,callback,function (err, relatedUserIds) {
+    database.project.getAllSharedUserIds(projectId,function (err, relatedUserIds) {
         if(!err){
-            if (helper.isInArray(relatedUserIds,userId)){
+            var formattedArray = helper.formatUserIdArray(relatedUserIds);
+            if (helper.isInArray(formattedArray,userId)){
                 callback(null,true)
             }else{
                 callback(null,false)

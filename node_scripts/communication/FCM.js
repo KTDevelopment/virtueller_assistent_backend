@@ -267,7 +267,7 @@ function sendMessageToFCM(messageData, callback){
  */
 function getMessageData(data,mitgliedArray) {
     var message = {
-        registration_ids: helper.formateRegistrationIdArray(mitgliedArray),
+        registration_ids: helper.formatRegistrationIdArray(mitgliedArray),
         data: data
     };
     return {

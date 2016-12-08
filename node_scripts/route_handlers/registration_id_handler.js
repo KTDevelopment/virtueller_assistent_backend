@@ -41,7 +41,7 @@ registrationIdHandler.save = function (registrationId, callingUser, callback) {
  */
 function isRegistrationIdAlreadySaved(newRegistrationId, availableRegistratinIds) {
     // return false wenn neue_id ist in availableIds
-    var formattedArray = helper.formateRegistrationIdArray(availableRegistratinIds);
+    var formattedArray = helper.formatRegistrationIdArray(availableRegistratinIds);
     return helper.isInArray(formattedArray,newRegistrationId);
 }
 

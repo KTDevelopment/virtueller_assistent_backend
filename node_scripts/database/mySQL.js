@@ -4,6 +4,7 @@ var mysql = require('mysql');
 var error = require('./../helper/error');
 var helper = require('./../helper/helper');
 var config = require('./../config');
+var async = require('async');
 
 var project = {};
 var milestone = {};
@@ -142,9 +143,17 @@ project.update = function (projectId, projectValues, callback){
     var queryParams =[newProject,projectId];
     executeQuery(query,queryParams,function(err, result){
         if (!err){
-            var updatedProject = newProject;
-            updatedProject.project_id = projectId;
-            callback(null, updatedProject)
+            if(result.affectedRows > 0){
+                project.getById(projectId,function (err, project) {
+                    if (!err){
+                        callback(null,project);
+                    }else{
+                        callback(err,null)
+                    }
+                });
+            }else {
+                callback(error.getBadRequestError(),null);
+            }
         }else{
             callback(err,null)
         }
@@ -237,13 +246,19 @@ project.getAllSharedUserIds = function (projectId, callback) {
 
 project.getByMilestoneId = function (milestoneId, callback) {
     var query =
-        "SELECT * FROM " +
+        "SELECT "+TABLE_NAME_PROJECT+".* FROM " +
         TABLE_NAME_PROJECT + " " +
         "LEFT JOIN "+ TABLE_NAME_MILESTONE + " ON " + COL_NAME_MILESTONE_FK_PROJECT + " = "+ COL_NAME_PROJECT_ID + " " +
         "WHERE " +
         COL_NAME_MILESTONE_ID+" = ?" ;
     var queryParams =[milestoneId];
-    executeQuery(query,queryParams,callback);
+    executeQuery(query,queryParams,function (err, result) {
+        if(!err){
+            callback(null,result[0])
+        }else{
+            callback(err,null);
+        }
+    });
 };
 
 //---------------- Funktionen für Milestones -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -333,10 +348,17 @@ milestone.update = function (milestoneId, milestoneValues, callback){
     var queryParams =[milestoneValues.milestone_name, milestoneValues.deadline, milestoneValues.description, milestoneValues.note, milestoneValues.achieved, milestoneId];
     executeQuery(query,queryParams,function(err, result){
         if (!err){
-            var updatedMilestone = milestoneValues;
-            updatedMilestone.fk_project_id = projectId;
-            updatedMilestone.milestone_id = milestoneId;
-            callback(null, updatedMilestone)
+            if(result.affectedRows > 0){
+                milestone.getById(milestoneId,function (err, milestone) {
+                    if (!err){
+                        callback(null,milestone);
+                    }else{
+                        callback(err,null)
+                    }
+                });
+            }else {
+                callback(error.getBadRequestError(),null);
+            }
         }else{
             callback(err,null)
         }
@@ -454,10 +476,17 @@ user.update = function (userId, userName, callback){
     var queryParams =[userName, userId];
     executeQuery(query,queryParams,function(err, result){
         if (!err){
-            var updatedUser={};
-            updatedUser.user_name = userName;
-            updatedUser.user_id = userId;
-            callback(null, updatedUser)
+            if(result.affectedRows > 0){
+                user.getById(userId,function (err, user) {
+                    if (!err){
+                        callback(null,user);
+                    }else{
+                        callback(err,null)
+                    }
+                });
+            }else {
+                callback(error.getBadRequestError(),null);
+            }
         }else{
             callback(err,null)
         }
