@@ -157,7 +157,7 @@ projectHandler.invite = function (projectId, collaboratorName, callingUser, call
                                 if(!err){
                                     callback(null,result);
                                 }else{
-                                    callback(null,err);
+                                    callback(err,null);
                                 }
                             });
                         }else{
