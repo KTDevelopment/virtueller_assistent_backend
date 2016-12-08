@@ -12,7 +12,7 @@ var fcm = {};
 
 //==================== Einstiegsfunktionen für FCM =========================================================================================================================================================================================================================================================
 
-fcm.projectSaved = function (projectId, callingUserName, userId,  callback) {
+fcm.projectSaved = function (projectId, userId, callingUserName,  callback) {
     var data = {
         'type': '1000',
         'projectId':projectId,

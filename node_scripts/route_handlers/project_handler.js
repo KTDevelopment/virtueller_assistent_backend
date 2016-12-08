@@ -24,7 +24,7 @@ projectHandler.save = function (projectValues, callingUser, callback) {
     database.project.save(projectValues,function(err, savedProject){
         if(!err){
             callback(null,savedProject);
-            fcm.projectSaved(savedProject.project_id, callingUserId,callingUserName,function (err, result) {
+            fcm.projectSaved(savedProject.project_id, callingUserId, callingUserName,function (err, result) {
                 // no one to notifie about
             });
         } else {
