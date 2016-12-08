@@ -12,14 +12,14 @@ var fcm = {};
 
 //==================== Einstiegsfunktionen für FCM =========================================================================================================================================================================================================================================================
 
-fcm.projectSaved = function (projectId, callingUserName, callback) {
+fcm.projectSaved = function (projectId, callingUserName, userId,  callback) {
     var data = {
-        'type': '100ß',
+        'type': '1000',
         'projectId':projectId,
         'triggeringUserName':callingUserName
     };
 
-    sendMessageToAllRelatedUsers(projectId, data, function (err, result) {
+    sendMessageToUser(userId, data, function (err, result) {
         if(!err){
             callback(null,result)
         }else{
@@ -202,7 +202,6 @@ function sendMessageToUser(userId, data, callback) {
         }
     })
 }
-
 
 function sendMessageToAllRelatedUsers(projectId, data, callback) {
     database.registrationId.getListByProjectId(projectId, function (err, result) {

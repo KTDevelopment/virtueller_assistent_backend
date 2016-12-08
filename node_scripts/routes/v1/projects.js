@@ -121,8 +121,25 @@ router.post('/:project_id/invite', function(req, res, next){
     }else{
         helper.sendResponse(res,error.getBadRequestError())
     }
+});
 
+router.post('/:project_id/respond', function (req, res, next) {
+    var projectId = req.params.project_id;
+    var hostName = req.body.user_name;
+    var status = req.body.status;
+    var callingUser = req.callingUser;
 
+    if(hostName && status && !isNaN(projectId)){
+        projectHandler.respond(projectId, hostName, status, callingUser, function (err, result) {
+            if(!err){
+                res.json(result)
+            }else{
+                helper.sendResponse(res,err)
+            }
+        })
+    }else{
+        helper.sendResponse(res,error.getBadRequestError())
+    }
 });
 
 router.post('/:project_id/leave',function (req, res, next) {

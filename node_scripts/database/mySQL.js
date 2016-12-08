@@ -191,7 +191,7 @@ project.addUser = function (userId, projectId, callback){
     var queryParams =[record];
     executeQuery(query,queryParams,function(err, result){
         if(!err){
-            callback(null,{insert:true});
+            callback(null,{add:true});
         }else{
             callback(err,null);
         }
@@ -369,6 +369,29 @@ milestone.getById = function (milestoneId, callback){
     executeQuery(query,queryParams,function(err, result){
         if(!err){
             callback(null,result[0])
+        }else{
+            callback(err,null);
+        }
+    });
+};
+
+milestone.achieve = function (milestoneId, achieve, callback) {
+    var query =
+        "UPDATE "+
+        TABLE_NAME_MILESTONE+" " +
+        "SET " +
+        COL_NAME_MILESTONE_ACHIEVED+" = ? " +
+        "WHERE " +
+        COL_NAME_MILESTONE_ID+ " = ? ";
+    var queryParams =[achieve, milestoneId];
+    executeQuery(query,queryParams,function(err, result){
+        if(!err){
+            if(result.affectedRows > 0){
+                var successJson = {update:true};
+                callback(null,successJson);
+            }else {
+                callback(error.getBadRequestError(),null);
+            }
         }else{
             callback(err,null);
         }
@@ -655,7 +678,6 @@ function executeQuery(query, queryParams, callback){
 //==================================================================================== Export ================================================================================================================================================================
 
 module.exports = {
-    rollback:rollback,
     project:project,
     user:user,
     milestone:milestone,

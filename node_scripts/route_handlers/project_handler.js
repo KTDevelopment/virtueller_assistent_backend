@@ -19,11 +19,12 @@ projectHandler.getListByUser = function (callingUser, callback) {
 
 projectHandler.save = function (projectValues, callingUser, callback) {
     var callingUserName = callingUser.user_name;
+    var callingUserId = callingUser.user_id;
     projectValues.fk_user_id = callingUser.user_id;
     database.project.save(projectValues,function(err, savedProject){
         if(!err){
             callback(null,savedProject);
-            fcm.projectSaved(savedProject.project_id,callingUserName,function (err, result) {
+            fcm.projectSaved(savedProject.project_id, callingUserId,callingUserName,function (err, result) {
                 // no one to notifie about
             });
         } else {
@@ -161,6 +162,7 @@ projectHandler.invite = function (projectId, collaboratorName, callingUser, call
 projectHandler.respond = function (projectId, hostName, status, callingUser, callback) {
     //TODO da die ProjectId vom Client geliefert wird, kann er einfach einem Projekt zusagen, obwohl er nie eingeladen wurde, muss in der weiteren Entwicklung angepasst werden
     var callingUserName = callingUser.user_name;
+    var callingUserId = callingUser.user_id;
 
     function getCollaborator(callback){
         database.user.getByName(hostName,function(err, host){
@@ -181,6 +183,9 @@ projectHandler.respond = function (projectId, hostName, status, callingUser, cal
                         if(!err){
                             callback(null,result);
                             fcm.projectInvitationResponded(projectId, hostId, callingUserName, status, function (err, result) {
+                                // no one to notifie about
+                            });
+                            fcm.projectSaved(projectId, callingUserId,callingUserName,function (err, result) {
                                 // no one to notifie about
                             });
                         }else{
